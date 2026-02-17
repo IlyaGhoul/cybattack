@@ -1,22 +1,708 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
         <script>
-            // Конфигурация подключения к API
+            // РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ РїРѕРґРєР»СЋС‡РµРЅРёСЏ Рє API
             window.CYBER_VIS_API_BASE = 'https://api.cybattack.ru';
             window.CYBER_VIS_WS_URL = 'wss://api.cybattack.ru/ws/monitor';
         </script>
 
-        <meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
-    <title>Мониторинг попыток входа</title>
+    <title>РњРѕРЅРёС‚РѕСЂРёРЅРі РїРѕРїС‹С‚РѕРє РІС…РѕРґР°</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-/* (truncated - copied from template) */
-</style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #4cc9f0, #4361ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .stat-value {
+            font-size: 2.2em;
+            font-weight: bold;
+            margin: 10px 0;
+            color: #4cc9f0;
+        }
+        
+        .stat-label {
+            color: #aaa;
+            font-size: 0.9em;
+        }
+        
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .attempts-list {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .attempt-item {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-left: 4px solid #4361ee;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .attempt-item.success {
+            border-left-color: #4ade80;
+        }
+        
+        .attempt-item.failed {
+            border-left-color: #f87171;
+        }
+        
+        .attempt-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .attempt-username {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .attempt-time {
+            color: #888;
+            font-size: 0.9em;
+        }
+        
+        .attempt-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+            color: #aaa;
+            margin-top: 5px;
+        }
+        
+        .status-badge {
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .status-success {
+            background: rgba(76, 222, 128, 0.2);
+            color: #4ade80;
+        }
+        
+        .status-failed {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            z-index: 1000;
+        }
+        
+        .connected {
+            background: rgba(76, 201, 240, 0.2);
+            color: #4cc9f0;
+            border: 1px solid #4cc9f0;
+        }
+        
+        .disconnected {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+            border: 1px solid #f87171;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        /* РЎРєСЂРѕР»Р»Р±Р°СЂ */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #4361ee;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3651d4;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        .chart-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: 400px; /* Р¤РёРєСЃРёСЂРѕРІР°РЅРЅР°СЏ РІС‹СЃРѕС‚Р° РґР»СЏ РіСЂР°С„РёРєР° */
+            position: relative;
+        }
+    </style>
 </head>
 <body>
-<div class="container">Мониторинг (копия)</div>
+    <div class="container">
+        <div class="header">
+            <h1>рџ‘ЃпёЏ РњРѕРЅРёС‚РѕСЂРёРЅРі РїРѕРїС‹С‚РѕРє РІС…РѕРґР°</h1>
+            <p>Р’СЃРµ РїРѕРїС‹С‚РєРё Р°РІС‚РѕСЂРёР·Р°С†РёРё РІ СЂРµР°Р»СЊРЅРѕРј РІСЂРµРјРµРЅРё</p>
+        </div>
+        
+        <div class="connection-status disconnected" id="wsStatus">
+            рџ”ґ РќРµ РїРѕРґРєР»СЋС‡РµРЅРѕ
+        </div>
+        
+        <div class="stats-grid" id="statsGrid">
+            <!-- РЎС‚Р°С‚РёСЃС‚РёРєР° Р±СѓРґРµС‚ Р·Р°РіСЂСѓР¶РµРЅР° С‡РµСЂРµР· JS -->
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="attemptsChart"></canvas>
+        </div>
+        
+        <h2 style="margin: 20px 0 10px 0;">рџ“‹ РџРѕСЃР»РµРґРЅРёРµ РїРѕРїС‹С‚РєРё РІС…РѕРґР°</h2>
+        <div class="attempts-list" id="attemptsList">
+            <div class="empty-state">РћР¶РёРґР°РЅРёРµ РґР°РЅРЅС‹С…...</div>
+        </div>
+    </div>
+
+<script>
+    console.log('рџ“Љ Р—Р°РіСЂСѓР¶Р°РµС‚СЃСЏ СЃС‚СЂР°РЅРёС†Р° РјРѕРЅРёС‚РѕСЂРёРЅРіР°');
+
+// Р¤СѓРЅРєС†РёСЏ РґР»СЏ РїСЂРѕРІРµСЂРєРё РґР°РЅРЅС‹С… РіСЂР°С„РёРєР°
+function debugChartData(attempts) {
+    console.log('рџ“€ Р”Р°РЅРЅС‹Рµ РґР»СЏ РіСЂР°С„РёРєР°:', {
+        'РљРѕР»РёС‡РµСЃС‚РІРѕ РїРѕРїС‹С‚РѕРє': attempts?.length || 0,
+        'РџРµСЂРІР°СЏ РїРѕРїС‹С‚РєР°': attempts?.[0],
+        'РџРѕСЃР»РµРґРЅСЏСЏ РїРѕРїС‹С‚РєР°': attempts?.[attempts?.length - 1],
+        'РЈСЃРїРµС€РЅС‹Рµ': attempts?.filter(a => a.success)?.length || 0,
+        'РќРµСѓРґР°С‡РЅС‹Рµ': attempts?.filter(a => !a.success)?.length || 0
+    });
+}
+    // Р“Р»РѕР±Р°Р»СЊРЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ
+    let ws = null;
+    let attemptsChart = null;
+    let chartData = {
+        labels: [],
+        successData: [],
+        failedData: []
+    };
+
+    const API_BASE = (typeof CYBER_VIS_API_BASE !== 'undefined') ? CYBER_VIS_API_BASE : (location.protocol + '//' + location.host);
+    const WS_URL = (typeof CYBER_VIS_WS_URL !== 'undefined') ? CYBER_VIS_WS_URL : ((location.protocol === 'https:') ? 'wss://' + location.host + '/ws/monitor' : 'ws://' + location.host + '/ws/monitor');
+    console.log('🚀 Страница загружена');
+    console.log('API_BASE:', API_BASE);
+    console.log('WS_URL:', WS_URL);
+    
+    // РџРѕРґРєР»СЋС‡РµРЅРёРµ Рє WebSocket
+    function connectWebSocket() {
+        ws = new WebSocket(WS_URL);
+        
+        ws.onopen = () => {
+            console.log('вњ… РџРѕРґРєР»СЋС‡РµРЅРѕ Рє WebSocket');
+            updateConnectionStatus(true);
+        };
+        
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                console.log('рџ“Ё РџРѕР»СѓС‡РµРЅРѕ:', data.type);
+                handleWebSocketMessage(data);
+            } catch (e) {
+                console.error('РћС€РёР±РєР° РїР°СЂСЃРёРЅРіР° JSON:', e);
+            }
+        };
+        
+        ws.onerror = (error) => {
+            console.error('WebSocket РѕС€РёР±РєР°:', error);
+            updateConnectionStatus(false);
+        };
+        
+        ws.onclose = () => {
+            console.log('WebSocket Р·Р°РєСЂС‹С‚, РїРµСЂРµРїРѕРґРєР»СЋС‡РµРЅРёРµ С‡РµСЂРµР· 3 СЃРµРєСѓРЅРґС‹...');
+            updateConnectionStatus(false);
+            setTimeout(connectWebSocket, 3000);
+        };
+    }
+    
+    // РћР±РЅРѕРІР»РµРЅРёРµ СЃС‚Р°С‚СѓСЃР° РїРѕРґРєР»СЋС‡РµРЅРёСЏ
+    function updateConnectionStatus(connected) {
+        const statusEl = document.getElementById('wsStatus');
+        if (connected) {
+            statusEl.textContent = 'рџџў РџРѕРґРєР»СЋС‡РµРЅРѕ';
+            statusEl.className = 'connection-status connected pulse';
+        } else {
+            statusEl.textContent = 'рџ”ґ РќРµ РїРѕРґРєР»СЋС‡РµРЅРѕ';
+            statusEl.className = 'connection-status disconnected';
+        }
+    }
+    
+    // РћР±СЂР°Р±РѕС‚РєР° СЃРѕРѕР±С‰РµРЅРёР№ WebSocket
+    function handleWebSocketMessage(data) {
+        console.log('рџ“Ё РџРѕР»СѓС‡РµРЅРѕ СЃРѕРѕР±С‰РµРЅРёРµ:', data.type, data.data);
+        
+        switch(data.type) {
+            case 'init':
+                updateStats(data.data.stats);
+                updateAttemptsList(data.data.recent_attempts);
+                initChart(data.data.recent_attempts);
+                break;
+                
+            case 'login_attempt':
+                console.log('рџ“Ё РќРѕРІР°СЏ РїРѕРїС‹С‚РєР° РІС…РѕРґР°:', data.data);
+                addAttemptToList(data.data);
+                updateChartWithAttempt(data.data);
+                updateStatsAfterAttempt(data.data.success);
+                break;
+                
+            case 'stats_update':
+                updateStats(data.data);
+                break;
+        }
+    }
+    
+    // РћР±РЅРѕРІР»РµРЅРёРµ СЃС‚Р°С‚РёСЃС‚РёРєРё
+    function updateStats(stats) {
+        const statsGrid = document.getElementById('statsGrid');
+        
+        const statsData = [
+            { label: 'Р’СЃРµРіРѕ РїРѕРїС‹С‚РѕРє', value: stats.total_attempts || 0, icon: 'рџ“Љ' },
+            { label: 'РЈСЃРїРµС€РЅС‹С…', value: stats.successful || 0, icon: 'вњ…' },
+            { label: 'РќРµСѓРґР°С‡РЅС‹С…', value: stats.failed || 0, icon: 'вќЊ' },
+            { label: 'РЈРЅРёРєР°Р»СЊРЅС‹С… РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№', value: stats.unique_users || 0, icon: 'рџ‘¤' },
+            { label: 'РЈРЅРёРєР°Р»СЊРЅС‹С… IP', value: stats.unique_ips || 0, icon: 'рџЊђ' },
+            { label: 'Р—Р° РїРѕСЃР»РµРґРЅРёР№ С‡Р°СЃ', value: stats.last_hour || 0, icon: 'рџ•ђ' }
+        ];
+        
+        statsGrid.innerHTML = statsData.map(stat => `
+            <div class="stat-card">
+                <div class="stat-icon">${stat.icon}</div>
+                <div class="stat-value">${stat.value}</div>
+                <div class="stat-label">${stat.label}</div>
+            </div>
+        `).join('');
+    }
+    
+    function updateStatsAfterAttempt(isSuccess) {
+        // РћР±РЅРѕРІР»СЏРµРј СЃС‚Р°С‚РёСЃС‚РёРєСѓ РІ СЂРµР°Р»СЊРЅРѕРј РІСЂРµРјРµРЅРё
+        const stats = document.querySelectorAll('.stat-value');
+        if (stats.length >= 3) {
+            // РћР±С‰РµРµ РєРѕР»РёС‡РµСЃС‚РІРѕ
+            let total = parseInt(stats[0].textContent);
+            stats[0].textContent = total + 1;
+            
+            // РЈСЃРїРµС€РЅС‹Рµ РёР»Рё РЅРµСѓРґР°С‡РЅС‹Рµ
+            if (isSuccess) {
+                let success = parseInt(stats[1].textContent);
+                stats[1].textContent = success + 1;
+            } else {
+                let failed = parseInt(stats[2].textContent);
+                stats[2].textContent = failed + 1;
+            }
+            
+            // Р—Р° РїРѕСЃР»РµРґРЅРёР№ С‡Р°СЃ
+            let lastHour = parseInt(stats[5].textContent);
+            stats[5].textContent = lastHour + 1;
+        }
+    }
+    
+    // РћР±РЅРѕРІР»РµРЅРёРµ СЃРїРёСЃРєР° РїРѕРїС‹С‚РѕРє
+    function updateAttemptsList(attempts) {
+        const attemptsList = document.getElementById('attemptsList');
+        
+        if (attempts.length === 0) {
+            attemptsList.innerHTML = '<div class="empty-state">РќРµС‚ РґР°РЅРЅС‹С… Рѕ РїРѕРїС‹С‚РєР°С… РІС…РѕРґР°</div>';
+            return;
+        }
+        
+        // РЎРѕСЂС‚РёСЂСѓРµРј РїРѕ РІСЂРµРјРµРЅРё (РЅРѕРІС‹Рµ СЃРІРµСЂС…Сѓ)
+        attempts.sort((a, b) => new Date(b.attempt_time) - new Date(a.attempt_time));
+        
+        attemptsList.innerHTML = '';
+        attempts.forEach(attempt => {
+            addAttemptToList(attempt, false);
+        });
+    }
+    
+    function addAttemptToList(attempt, animate = true) {
+        const attemptsList = document.getElementById('attemptsList');
+        
+        // РЈРґР°Р»СЏРµРј РїСѓСЃС‚РѕРµ СЃРѕСЃС‚РѕСЏРЅРёРµ РµСЃР»Рё РµСЃС‚СЊ
+        const emptyState = attemptsList.querySelector('.empty-state');
+        if (emptyState) {
+            emptyState.remove();
+        }
+        
+        const attemptEl = document.createElement('div');
+        attemptEl.className = `attempt-item ${attempt.success ? 'success' : 'failed'}`;
+        
+        if (animate) {
+            attemptEl.style.animation = 'slideIn 0.3s ease';
+        }
+        
+        const time = new Date(attempt.timestamp || attempt.attempt_time);
+        const timeStr = time.toLocaleTimeString();
+        
+        attemptEl.innerHTML = `
+            <div class="attempt-header">
+                <div class="attempt-username">${attempt.username}</div>
+                <div class="attempt-time">${timeStr}</div>
+            </div>
+            <div class="attempt-info">
+                <div>
+                    <span class="status-badge status-${attempt.success ? 'success' : 'failed'}">
+                        ${attempt.success ? 'вњ… РЈСЃРїРµС€РЅРѕ' : 'вќЊ РќРµСѓРґР°С‡РЅРѕ'}
+                    </span>
+                    <span style="margin-left: 10px; color: #888;">${attempt.reason || ''}</span>
+                </div>
+                <div>
+                    <span style="color: #888;">${attempt.client_type || 'РќРµРёР·РІРµСЃС‚РЅРѕ'}</span>
+                    <span style="margin-left: 10px; color: #666; font-size: 0.8em;">${attempt.ip_address || ''}</span>
+                </div>
+            </div>
+        `;
+        
+        attemptsList.prepend(attemptEl);
+        
+        // РћРіСЂР°РЅРёС‡РёРІР°РµРј РєРѕР»РёС‡РµСЃС‚РІРѕ РѕС‚РѕР±СЂР°Р¶Р°РµРјС‹С… РїРѕРїС‹С‚РѕРє
+        const items = attemptsList.querySelectorAll('.attempt-item');
+        if (items.length > 50) {
+            attemptsList.removeChild(items[items.length - 1]);
+        }
+    }
+    
+function initChart(attempts) {
+    console.log('рџ“Љ РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РіРёСЃС‚РѕРіСЂР°РјРјС‹');
+    
+    const ctx = document.getElementById('attemptsChart').getContext('2d');
+    
+    // Р“СЂСѓРїРїРёСЂСѓРµРј РїРѕ С‡Р°СЃР°Рј Р·Р° РїРѕСЃР»РµРґРЅРёРµ 6 С‡Р°СЃРѕРІ
+    const now = new Date();
+    const labels = [];
+    const successData = Array(6).fill(0);
+    const failedData = Array(6).fill(0);
+    
+    // РЎРѕР·РґР°РµРј РјРµС‚РєРё РґР»СЏ РїРѕСЃР»РµРґРЅРёС… 6 С‡Р°СЃРѕРІ
+    for (let i = 5; i >= 0; i--) {
+        const hour = new Date(now);
+        hour.setHours(now.getHours() - i);
+        labels.push(hour.getHours().toString().padStart(2, '0') + ':00');
+    }
+    
+    console.log('рџ“Љ РњРµС‚РєРё РіСЂР°С„РёРєР°:', labels);
+    
+    // РћР±СЂР°Р±Р°С‚С‹РІР°РµРј РїРѕРїС‹С‚РєРё РµСЃР»Рё РѕРЅРё РµСЃС‚СЊ
+    if (attempts && attempts.length > 0) {
+        console.log('рџ“Љ РћР±СЂР°Р±Р°С‚С‹РІР°СЋ', attempts.length, 'РїРѕРїС‹С‚РѕРє');
+        
+        attempts.forEach(attempt => {
+            // РСЃРїРѕР»СЊР·СѓРµРј РїСЂР°РІРёР»СЊРЅРѕРµ РїРѕР»Рµ РІСЂРµРјРµРЅРё
+            const attemptTime = new Date(attempt.timestamp || attempt.attempt_time);
+            console.log('рџ“Љ РџРѕРїС‹С‚РєР°:', {
+                username: attempt.username,
+                time: attemptTime.toISOString(),
+                success: attempt.success,
+                hour: attemptTime.getHours()
+            });
+            
+            // Р Р°Р·РЅРёС†Р° РІ С‡Р°СЃР°С… РѕС‚ С‚РµРєСѓС‰РµРіРѕ РІСЂРµРјРµРЅРё
+            const hourDiff = Math.floor((now - attemptTime) / (1000 * 60 * 60));
+            
+            // Р•СЃР»Рё РїРѕРїС‹С‚РєР° Р±С‹Р»Р° РІ РїРѕСЃР»РµРґРЅРёРµ 6 С‡Р°СЃРѕРІ
+            if (hourDiff >= 0 && hourDiff < 6) {
+                const index = 5 - hourDiff;
+                if (index >= 0 && index < 6) {
+                    if (attempt.success) {
+                        successData[index]++;
+                    } else {
+                        failedData[index]++;
+                    }
+                }
+            }
+        });
+    }
+    
+    console.log('рџ“Љ Р”Р°РЅРЅС‹Рµ РґР»СЏ РіСЂР°С„РёРєР°:', {
+        labels: labels,
+        success: successData,
+        failed: failedData
+    });
+    
+    // РЈРЅРёС‡С‚РѕР¶Р°РµРј РїСЂРµРґС‹РґСѓС‰РёР№ РіСЂР°С„РёРє РµСЃР»Рё РµСЃС‚СЊ
+    if (attemptsChart) {
+        attemptsChart.destroy();
+    }
+    
+    attemptsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'РЈСЃРїРµС€РЅС‹Рµ',
+                    data: successData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.8)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'РќРµСѓРґР°С‡РЅС‹Рµ',
+                    data: failedData,
+                    backgroundColor: 'rgba(255, 99, 132, 0.8)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#fff'
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'РџРѕРїС‹С‚РєРё РІС…РѕРґР° Р·Р° РїРѕСЃР»РµРґРЅРёРµ 6 С‡Р°СЃРѕРІ',
+                    color: '#fff',
+                    font: {
+                        size: 16
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { 
+                        color: '#aaa',
+                        maxRotation: 0
+                    },
+                    grid: { 
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: { 
+                        color: '#aaa',
+                        stepSize: 1,
+                        precision: 0
+                    },
+                    grid: { 
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    }
+                }
+            }
+        }
+    });
+}
+    
+    function updateChartData(attempts) {
+        const now = new Date();
+        
+        // РЎР±СЂР°СЃС‹РІР°РµРј РґР°РЅРЅС‹Рµ
+        chartData.successData = Array(12).fill(0);
+        chartData.failedData = Array(12).fill(0);
+        
+        // РЎС‡РёС‚Р°РµРј РїРѕРїС‹С‚РєРё Р·Р° РїРѕСЃР»РµРґРЅРёР№ С‡Р°СЃ (СЂР°Р·Р±РёРІР°РµРј РЅР° 12 РёРЅС‚РµСЂРІР°Р»РѕРІ РїРѕ 5 РјРёРЅСѓС‚)
+        attempts.forEach(attempt => {
+            const attemptTime = new Date(attempt.attempt_time || attempt.timestamp);
+            const minutesDiff = Math.floor((now - attemptTime) / (1000 * 60));
+            
+            if (minutesDiff >= 0 && minutesDiff < 60) {
+                const intervalIndex = Math.floor(minutesDiff / 5);
+                if (intervalIndex >= 0 && intervalIndex < 12) {
+                    if (attempt.success) {
+                        chartData.successData[11 - intervalIndex]++;
+                    } else {
+                        chartData.failedData[11 - intervalIndex]++;
+                    }
+                }
+            }
+        });
+    }
+    
+ function updateChartWithAttempt(attempt) {
+    if (!attemptsChart) {
+        console.log('рџ“Љ Р“СЂР°С„РёРє РµС‰Рµ РЅРµ РёРЅРёС†РёР°Р»РёР·РёСЂРѕРІР°РЅ');
+        return;
+    }
+    
+    console.log('рџ“Љ РћР±РЅРѕРІР»СЏСЋ РіСЂР°С„РёРє СЃ РЅРѕРІРѕР№ РїРѕРїС‹С‚РєРѕР№:', attempt);
+    
+    // РџРѕР»СѓС‡Р°РµРј С‚РµРєСѓС‰РµРµ РІСЂРµРјСЏ
+    const now = new Date();
+    const attemptTime = new Date(attempt.timestamp || attempt.attempt_time);
+    
+    // Р Р°Р·РЅРёС†Р° РІ С‡Р°СЃР°С…
+    const hourDiff = Math.floor((now - attemptTime) / (1000 * 60 * 60));
+    
+    // Р•СЃР»Рё РїРѕРїС‹С‚РєР° РІ РїРѕСЃР»РµРґРЅРёРµ 6 С‡Р°СЃРѕРІ
+    if (hourDiff >= 0 && hourDiff < 6) {
+        const index = 5 - hourDiff;
+        
+        // РћР±РЅРѕРІР»СЏРµРј РґР°РЅРЅС‹Рµ РІ РіСЂР°С„РёРєРµ
+        if (attempt.success) {
+            attemptsChart.data.datasets[0].data[index]++;
+        } else {
+            attemptsChart.data.datasets[1].data[index]++;
+        }
+        
+        // РћР±РЅРѕРІР»СЏРµРј РіСЂР°С„РёРє
+        attemptsChart.update();
+        console.log('рџ“Љ Р“СЂР°С„РёРє РѕР±РЅРѕРІР»РµРЅ');
+    } else {
+        console.log('рџ“Љ РџРѕРїС‹С‚РєР° РІРЅРµ РґРёР°РїР°Р·РѕРЅР° РіСЂР°С„РёРєР° (Р±РѕР»СЊС€Рµ 6 С‡Р°СЃРѕРІ)');
+    }
+}
+
+    // Р—Р°РіСЂСѓР·РєР° РЅР°С‡Р°Р»СЊРЅС‹С… РґР°РЅРЅС‹С…
+    function loadInitialData() {
+        fetch(API_BASE + '/api/stats')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateStats(data.data);
+                }
+            })
+            .catch(err => console.error('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё СЃС‚Р°С‚РёСЃС‚РёРєРё:', err));
+        
+        fetch(API_BASE + '/api/attempts?limit=50')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateAttemptsList(data.data);
+                    if (!attemptsChart) {
+                        initChart(data.data);
+                    } else {
+                        updateChartData(data.data);
+                        attemptsChart.data.datasets[0].data = chartData.successData;
+                        attemptsChart.data.datasets[1].data = chartData.failedData;
+                        attemptsChart.update();
+                    }
+                }
+            })
+            .catch(err => console.error('РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё РїРѕРїС‹С‚РѕРє:', err));
+    }
+    
+    // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РїСЂРё Р·Р°РіСЂСѓР·РєРµ СЃС‚СЂР°РЅРёС†С‹
+    window.addEventListener('load', () => {
+        loadInitialData();
+        connectWebSocket();
+        
+        // РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРѕРµ РѕР±РЅРѕРІР»РµРЅРёРµ РєР°Р¶РґС‹Рµ 10 СЃРµРєСѓРЅРґ (fallback)
+        setInterval(loadInitialData, 10000);
+        
+        // РћР±РЅРѕРІР»СЏРµРј РІСЂРµРјСЏ РЅР° РіСЂР°С„РёРєРµ РєР°Р¶РґСѓСЋ РјРёРЅСѓС‚Сѓ
+        setInterval(() => {
+            if (attemptsChart) {
+                const now = new Date();
+                chartData.labels = Array.from({length: 12}, (_, i) => {
+                    const time = new Date(now);
+                    time.setMinutes(now.getMinutes() - (11 - i) * 5);
+                    return time.getHours().toString().padStart(2, '0') + ':' + 
+                           time.getMinutes().toString().padStart(2, '0');
+                });
+                attemptsChart.data.labels = chartData.labels;
+                attemptsChart.update();
+            }
+        }, 60000);
+    });
+</script>
 </body>
 </html>
