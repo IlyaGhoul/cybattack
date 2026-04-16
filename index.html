@@ -161,8 +161,7 @@
             color: #4cc9f0;
         }
 
-        .map-section,
-        .recommendations-section {
+        .map-section {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 15px;
             padding: 30px;
@@ -170,14 +169,12 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .map-header,
-        .recommendations-header {
+        .map-header {
             text-align: center;
             margin-bottom: 20px;
         }
 
-        .map-header h2,
-        .recommendations-header h2 {
+        .map-header h2 {
             font-size: 1.8em;
             margin-bottom: 10px;
             color: #4cc9f0;
@@ -230,33 +227,6 @@
             font-size: 0.95em;
         }
 
-        .recommendations-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 18px;
-        }
-
-        @media (max-width: 1000px) {
-            .recommendations-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .recommendation-card {
-            background: rgba(255, 255, 255, 0.04);
-            border-radius: 12px;
-            padding: 18px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            color: #cbd5e1;
-            line-height: 1.45;
-        }
-
-        .recommendation-card strong {
-            display: block;
-            color: #ffffff;
-            margin-bottom: 8px;
-        }
-        
         .attempts-section {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -572,27 +542,6 @@
             </div>
         </div>
 
-        <div class="recommendations-section">
-            <div class="recommendations-header">
-                <h2>🛡️ Рекомендации для демонстрации защиты</h2>
-                <p>Короткие действия, которые усиливают практическую часть диплома.</p>
-            </div>
-            <div class="recommendations-grid">
-                <div class="recommendation-card">
-                    <strong>Сценарии атак</strong>
-                    Покажи обычный вход, ошибочный пароль, серию brute-force попыток и автоматическую блокировку IP.
-                </div>
-                <div class="recommendation-card">
-                    <strong>Журнал событий</strong>
-                    Сохраняй IP, геолокацию, тип атаки, уровень угрозы и причину отказа для последующего анализа.
-                </div>
-                <div class="recommendation-card">
-                    <strong>Стабильный контур</strong>
-                    Запускай API через Docker/Caddy, используй HTTPS и проверяй доступность API перед демонстрацией.
-                </div>
-            </div>
-        </div>
-        
         <div class="attempts-section">
             <div class="attempts-panel">
                 <div class="panel-header">
