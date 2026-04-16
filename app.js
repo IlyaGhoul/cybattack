@@ -17,10 +17,14 @@
     let statsRefreshTimer = null;
     let attemptsRefreshTimer = null;
     let blockedRefreshTimer = null;
+    let mapRefreshTimer = null;
+    let attackMap = null;
+    let attackMarkersLayer = null;
 
     let liveAttempts = [];
     let recentAttempts = [];
     let blockedIps = [];
+    let attackMapAttempts = [];
 
     const maxLiveAttempts = 20;
     const maxRecentAttempts = 20;
@@ -32,6 +36,33 @@
         if (element) {
             element.textContent = value;
         }
+    };
+
+    const escapeHtml = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+
+    const isSuccessful = (attempt) => attempt?.success === true || attempt?.success === 1 || attempt?.success === '1';
+
+    const hasCoordinates = (attempt) => {
+        const latitude = Number(attempt?.latitude);
+        const longitude = Number(attempt?.longitude);
+        return Number.isFinite(latitude) && Number.isFinite(longitude);
+    };
+
+    const formatLocation = (attempt) => {
+        const parts = [attempt?.city, attempt?.country].filter(Boolean);
+        return parts.length > 0 ? parts.join(', ') : 'Неизвестно';
+    };
+
+    const setMapEmptyState = (visible, text = 'Координаты появятся после попыток входа с публичных IP-адресов.') => {
+        const element = byId('mapEmptyState');
+        if (!element) return;
+        element.textContent = text;
+        element.style.display = visible ? 'block' : 'none';
     };
 
     const setConnectionStatus = (connected) => {
@@ -91,6 +122,9 @@
         const time = new Date(timestampValue);
         const timeStr = time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const dateStr = time.toLocaleDateString();
+        const locationText = formatLocation(attempt);
+        const attackTypeText = attempt.attack_type ? ` · ${attempt.attack_type}` : '';
+        const threatText = attempt.threat_level ? ` · ${attempt.threat_level}` : '';
 
         attemptElement.innerHTML = `
             <div class="attempt-header">
@@ -107,7 +141,7 @@
                 <div>
                     <span>${attempt.client_type || ''}</span>
                     <span style="margin-left:12px;color:#888;">IP: ${attempt.ip_address || (attempt.client_info && attempt.client_info.ip_address) || '---'}</span>
-                    <span style="margin-left:12px;color:#999;">🌍 ${attempt.country || 'Неизвестно'}</span>
+                    <span style="margin-left:12px;color:#999;">🌍 ${locationText}${attackTypeText}${threatText}</span>
                 </div>
             </div>
         `;
@@ -158,6 +192,82 @@
         setText('blockedIpsCount', items.length);
     };
 
+    const initAttackMap = () => {
+        const mapElement = byId('attackMap');
+        if (!mapElement || !window.L || attackMap) return;
+
+        attackMap = L.map(mapElement, {
+            scrollWheelZoom: false,
+            worldCopyJump: true
+        }).setView([20, 0], 2);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(attackMap);
+
+        attackMarkersLayer = L.featureGroup().addTo(attackMap);
+        setTimeout(() => attackMap.invalidateSize(), 250);
+    };
+
+    const createMapPopup = (attempt) => {
+        const status = isSuccessful(attempt) ? '✅ Успешная попытка' : '❌ Неудачная попытка';
+        const location = formatLocation(attempt);
+        const timeValue = attempt.attempt_time || attempt.timestamp || new Date().toISOString();
+        const time = new Date(timeValue).toLocaleString();
+
+        return `
+            <strong>${status}</strong><br>
+            Пользователь: ${escapeHtml(attempt.username || 'Неизвестно')}<br>
+            IP: ${escapeHtml(attempt.ip_address || '---')}<br>
+            Локация: ${escapeHtml(location)}<br>
+            Тип: ${escapeHtml(attempt.attack_type || 'login_attempt')}<br>
+            Угроза: ${escapeHtml(attempt.threat_level || 'low')}<br>
+            Время: ${escapeHtml(time)}
+        `;
+    };
+
+    const addAttemptMarker = (attempt) => {
+        initAttackMap();
+        if (!attackMap || !attackMarkersLayer || !hasCoordinates(attempt)) {
+            return false;
+        }
+
+        const latitude = Number(attempt.latitude);
+        const longitude = Number(attempt.longitude);
+        const color = isSuccessful(attempt) ? '#22c55e' : '#ef4444';
+        const marker = L.circleMarker([latitude, longitude], {
+            radius: 8,
+            color,
+            fillColor: color,
+            fillOpacity: 0.85,
+            weight: 2
+        });
+
+        marker.bindPopup(createMapPopup(attempt));
+        marker.addTo(attackMarkersLayer);
+        return true;
+    };
+
+    const renderAttackMap = (attempts) => {
+        initAttackMap();
+        if (!attackMap || !attackMarkersLayer) {
+            setMapEmptyState(true, 'Карта не загрузилась. Проверь подключение Leaflet CDN.');
+            return;
+        }
+
+        attackMarkersLayer.clearLayers();
+        const plotted = (Array.isArray(attempts) ? attempts : []).filter(addAttemptMarker);
+        setMapEmptyState(plotted.length === 0);
+
+        if (plotted.length > 0) {
+            const bounds = attackMarkersLayer.getBounds();
+            if (bounds.isValid()) {
+                attackMap.fitBounds(bounds.pad(0.25), { maxZoom: 6 });
+            }
+        }
+    };
+
     const fetchJson = async (path) => {
         const response = await fetch(`${apiBase}${path}`);
         if (!response.ok) {
@@ -200,6 +310,18 @@
             }
         } catch (error) {
             console.error('❌ Ошибка загрузки заблокированных IP:', error);
+        }
+    };
+
+    const loadAttackMapData = async () => {
+        try {
+            const data = await fetchJson('/api/attack-map?limit=200');
+            if (data.success) {
+                attackMapAttempts = data.data || [];
+                renderAttackMap(attackMapAttempts);
+            }
+        } catch (error) {
+            console.error('❌ Ошибка загрузки карты атак:', error);
         }
     };
 
@@ -261,6 +383,9 @@
             updateChartValues(message.data?.chart_data);
             recentAttempts = message.data?.recent_attempts || [];
             renderAttemptsList(recentAttempts, 'recentAttemptsList', 'recentAttemptsCount');
+            if (recentAttempts.some(hasCoordinates)) {
+                renderAttackMap(recentAttempts);
+            }
             updateLastUpdateTime();
             return;
         }
@@ -275,6 +400,12 @@
             }
             renderAttemptsList(liveAttempts, 'liveAttemptsList', 'liveAttemptsCount');
             renderAttemptsList(recentAttempts, 'recentAttemptsList', 'recentAttemptsCount');
+            if (addAttemptMarker(message.data)) {
+                attackMapAttempts.unshift(message.data);
+                attackMapAttempts = attackMapAttempts.slice(0, 200);
+                setMapEmptyState(false);
+                attackMap.panTo([Number(message.data.latitude), Number(message.data.longitude)], { animate: true });
+            }
             loadStats();
             loadChartData();
             return;
@@ -325,6 +456,7 @@
         loadRecentAttempts();
         loadBlockedIps();
         loadChartData();
+        loadAttackMapData();
     };
 
     window.retryConnection = () => {
@@ -335,11 +467,13 @@
 
     window.addEventListener('load', () => {
         initChart();
+        initAttackMap();
         loadInitialData();
         connectWebSocket();
         statsRefreshTimer = setInterval(loadStats, 10000);
         attemptsRefreshTimer = setInterval(loadRecentAttempts, 15000);
         blockedRefreshTimer = setInterval(loadBlockedIps, 30000);
         chartRefreshTimer = setInterval(loadChartData, 15000);
+        mapRefreshTimer = setInterval(loadAttackMapData, 30000);
     });
 })();

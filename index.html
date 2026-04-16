@@ -11,7 +11,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <title>Мониторинг попыток входа</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * {
             margin: 0;
@@ -157,6 +159,102 @@
         
         .total-value {
             color: #4cc9f0;
+        }
+
+        .map-section,
+        .recommendations-section {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .map-header,
+        .recommendations-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .map-header h2,
+        .recommendations-header h2 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+            color: #4cc9f0;
+        }
+
+        #attackMap {
+            width: 100%;
+            height: 430px;
+            border-radius: 14px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: #0f172a;
+        }
+
+        .leaflet-container {
+            background: #0f172a;
+            color: #111827;
+        }
+
+        .map-legend {
+            display: flex;
+            gap: 18px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 16px;
+            color: #cbd5e1;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .legend-success {
+            background: #22c55e;
+        }
+
+        .legend-failed {
+            background: #ef4444;
+        }
+
+        .map-empty-state {
+            margin-top: 14px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.95em;
+        }
+
+        .recommendations-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 18px;
+        }
+
+        @media (max-width: 1000px) {
+            .recommendations-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .recommendation-card {
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 12px;
+            padding: 18px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #cbd5e1;
+            line-height: 1.45;
+        }
+
+        .recommendation-card strong {
+            display: block;
+            color: #ffffff;
+            margin-bottom: 8px;
         }
         
         .attempts-section {
@@ -455,6 +553,42 @@
                 <div class="chart-info-item">
                     <div class="chart-info-label">📊 Всего</div>
                     <div class="chart-info-value total-value" id="chartTotal">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="map-section">
+            <div class="map-header">
+                <h2>🗺️ Карта попыток атаки</h2>
+                <p>Успешные входы отмечаются зелёным, неудачные попытки — красным.</p>
+            </div>
+            <div id="attackMap"></div>
+            <div class="map-legend">
+                <span><span class="legend-dot legend-success"></span>Успешная попытка</span>
+                <span><span class="legend-dot legend-failed"></span>Неудачная попытка</span>
+            </div>
+            <div class="map-empty-state" id="mapEmptyState">
+                Координаты появятся после попыток входа с публичных IP-адресов.
+            </div>
+        </div>
+
+        <div class="recommendations-section">
+            <div class="recommendations-header">
+                <h2>🛡️ Рекомендации для демонстрации защиты</h2>
+                <p>Короткие действия, которые усиливают практическую часть диплома.</p>
+            </div>
+            <div class="recommendations-grid">
+                <div class="recommendation-card">
+                    <strong>Сценарии атак</strong>
+                    Покажи обычный вход, ошибочный пароль, серию brute-force попыток и автоматическую блокировку IP.
+                </div>
+                <div class="recommendation-card">
+                    <strong>Журнал событий</strong>
+                    Сохраняй IP, геолокацию, тип атаки, уровень угрозы и причину отказа для последующего анализа.
+                </div>
+                <div class="recommendation-card">
+                    <strong>Стабильный контур</strong>
+                    Запускай API через Docker/Caddy, используй HTTPS и проверяй доступность API перед демонстрацией.
                 </div>
             </div>
         </div>
