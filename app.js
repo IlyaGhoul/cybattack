@@ -28,6 +28,29 @@
 
     const maxLiveAttempts = 20;
     const maxRecentAttempts = 20;
+    const countryCoordinates = {
+        'Netherlands': [52.1326, 5.2913],
+        'The Netherlands': [52.1326, 5.2913],
+        'Russia': [61.524, 105.3188],
+        'Russian Federation': [61.524, 105.3188],
+        'United States': [37.0902, -95.7129],
+        'United States of America': [37.0902, -95.7129],
+        'Germany': [51.1657, 10.4515],
+        'France': [46.2276, 2.2137],
+        'United Kingdom': [55.3781, -3.436],
+        'Poland': [51.9194, 19.1451],
+        'Finland': [61.9241, 25.7482],
+        'Sweden': [60.1282, 18.6435],
+        'China': [35.8617, 104.1954],
+        'India': [20.5937, 78.9629],
+        'Brazil': [-14.235, -51.9253],
+        'Canada': [56.1304, -106.3468],
+        'Japan': [36.2048, 138.2529],
+        'South Korea': [35.9078, 127.7669],
+        'Turkey': [38.9637, 35.2433],
+        'Ukraine': [48.3794, 31.1656],
+        'Kazakhstan': [48.0196, 66.9237]
+    };
 
     const byId = (id) => document.getElementById(id);
 
@@ -47,11 +70,35 @@
 
     const isSuccessful = (attempt) => attempt?.success === true || attempt?.success === 1 || attempt?.success === '1';
 
-    const hasCoordinates = (attempt) => {
+    const hasExactCoordinates = (attempt) => {
         const latitude = Number(attempt?.latitude);
         const longitude = Number(attempt?.longitude);
         return Number.isFinite(latitude) && Number.isFinite(longitude);
     };
+
+    const resolveCoordinates = (attempt) => {
+        if (hasExactCoordinates(attempt)) {
+            return {
+                latitude: Number(attempt.latitude),
+                longitude: Number(attempt.longitude),
+                precision: 'точные координаты IP'
+            };
+        }
+
+        const country = String(attempt?.country || '').trim();
+        const countryCenter = countryCoordinates[country];
+        if (countryCenter) {
+            return {
+                latitude: countryCenter[0],
+                longitude: countryCenter[1],
+                precision: 'примерно по стране'
+            };
+        }
+
+        return null;
+    };
+
+    const hasCoordinates = (attempt) => Boolean(resolveCoordinates(attempt));
 
     const formatLocation = (attempt) => {
         const parts = [attempt?.city, attempt?.country].filter(Boolean);
@@ -215,12 +262,14 @@
         const location = formatLocation(attempt);
         const timeValue = attempt.attempt_time || attempt.timestamp || new Date().toISOString();
         const time = new Date(timeValue).toLocaleString();
+        const coordinates = resolveCoordinates(attempt);
 
         return `
             <strong>${status}</strong><br>
             Пользователь: ${escapeHtml(attempt.username || 'Неизвестно')}<br>
             IP: ${escapeHtml(attempt.ip_address || '---')}<br>
             Локация: ${escapeHtml(location)}<br>
+            Точность: ${escapeHtml(coordinates?.precision || 'нет координат')}<br>
             Тип: ${escapeHtml(attempt.attack_type || 'login_attempt')}<br>
             Угроза: ${escapeHtml(attempt.threat_level || 'low')}<br>
             Время: ${escapeHtml(time)}
@@ -229,19 +278,20 @@
 
     const addAttemptMarker = (attempt) => {
         initAttackMap();
-        if (!attackMap || !attackMarkersLayer || !hasCoordinates(attempt)) {
+        const coordinates = resolveCoordinates(attempt);
+        if (!attackMap || !attackMarkersLayer || !coordinates) {
             return false;
         }
 
-        const latitude = Number(attempt.latitude);
-        const longitude = Number(attempt.longitude);
         const color = isSuccessful(attempt) ? '#22c55e' : '#ef4444';
-        const marker = L.circleMarker([latitude, longitude], {
-            radius: 8,
+        const isApproximate = coordinates.precision !== 'точные координаты IP';
+        const marker = L.circleMarker([coordinates.latitude, coordinates.longitude], {
+            radius: isApproximate ? 12 : 9,
             color,
             fillColor: color,
-            fillOpacity: 0.85,
-            weight: 2
+            fillOpacity: isApproximate ? 0.55 : 0.85,
+            weight: 2,
+            dashArray: isApproximate ? '5 5' : null
         });
 
         marker.bindPopup(createMapPopup(attempt));
@@ -315,7 +365,14 @@
 
     const loadAttackMapData = async () => {
         try {
-            const data = await fetchJson('/api/attack-map?limit=200');
+            let data;
+            try {
+                data = await fetchJson('/api/attack-map?limit=200');
+            } catch (error) {
+                console.warn('⚠️ /api/attack-map недоступен, использую /api/attempts:', error);
+                data = await fetchJson('/api/attempts?limit=200');
+            }
+
             if (data.success) {
                 attackMapAttempts = data.data || [];
                 renderAttackMap(attackMapAttempts);
@@ -404,7 +461,8 @@
                 attackMapAttempts.unshift(message.data);
                 attackMapAttempts = attackMapAttempts.slice(0, 200);
                 setMapEmptyState(false);
-                attackMap.panTo([Number(message.data.latitude), Number(message.data.longitude)], { animate: true });
+                const coordinates = resolveCoordinates(message.data);
+                attackMap.panTo([coordinates.latitude, coordinates.longitude], { animate: true });
             }
             loadStats();
             loadChartData();

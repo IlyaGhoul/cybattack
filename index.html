@@ -182,11 +182,19 @@
 
         #attackMap {
             width: 100%;
-            height: 430px;
+            height: min(76vh, 760px);
+            min-height: 560px;
             border-radius: 14px;
             overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.12);
             background: #0f172a;
+        }
+
+        @media (max-width: 768px) {
+            #attackMap {
+                height: 60vh;
+                min-height: 420px;
+            }
         }
 
         .leaflet-container {
