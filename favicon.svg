@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="IT">
+  <rect width="64" height="64" rx="14" fill="#17212b"/>
+  <rect x="8" y="8" width="48" height="48" rx="10" fill="#2364aa"/>
+  <path d="M20 34l7 7 17-18" fill="none" stroke="#7ee0c4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="32" y="29" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="800" fill="#ffffff">IT</text>
+</svg>
