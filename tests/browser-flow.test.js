@@ -75,6 +75,7 @@ test("user can run a generated SUSU exam with timer and result actions", async (
     await page.click('[data-testid="submit-quiz"]');
 
     await page.waitForSelector('[data-testid="result-panel"]');
+    assert.equal(await page.evaluate(() => window.scrollY), 0);
     await assert.match(await page.locator('[data-testid="score"]').innerText(), /из 20/);
     assert.equal(await page.locator('[data-action="new-attempt"]').count(), 1);
     assert.equal(await page.locator('[data-action="repeat-mistakes"]').count(), 1);
