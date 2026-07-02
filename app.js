@@ -1,8 +1,13 @@
 const app = document.querySelector("#app");
+const HISTORY_KEY = "cybattack-quiz-history-v2";
 
 const state = {
-  quiz: null,
+  attempt: null,
   answers: {},
+  history: loadHistory(),
+  lastConfig: null,
+  timerId: null,
+  timerRemaining: null,
 };
 
 function escapeHtml(value) {
@@ -18,37 +23,181 @@ function renderShell(content) {
   app.innerHTML = content;
 }
 
-function renderSelector() {
-  state.quiz = null;
-  state.answers = {};
+function loadHistory() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(HISTORY_KEY));
+    return {
+      recentQuestionIds: Array.isArray(parsed?.recentQuestionIds) ? parsed.recentQuestionIds : [],
+      mistakeQuestionIds: Array.isArray(parsed?.mistakeQuestionIds) ? parsed.mistakeQuestionIds : [],
+    };
+  } catch {
+    return window.QuizGenerator.createEmptyHistory();
+  }
+}
 
-  const tiles = window.QUIZ_SETS.map(
-    (quiz) => `
-      <button class="quiz-tile" type="button" data-quiz-id="${quiz.id}">
-        <span>
-          <strong>${escapeHtml(quiz.title)}</strong>
-          ${escapeHtml(quiz.subtitle)}
-        </span>
-        <span class="quiz-meta">${quiz.questions.length} вопросов</span>
-      </button>
-    `,
-  ).join("");
+function saveHistory() {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(state.history));
+}
+
+function clearTimer() {
+  if (state.timerId) {
+    clearInterval(state.timerId);
+    state.timerId = null;
+  }
+}
+
+function scrollTop() {
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function getUniversityTitle(university) {
+  return university === "urfu" ? "УрФУ" : "ЮУрГУ";
+}
+
+function getTopicTitle(university, topicId) {
+  return window.QUIZ_TOPICS[university]?.find((topic) => topic.id === topicId)?.title || "Все темы";
+}
+
+function formatTime(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  const rest = seconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
+}
+
+function renderModeSelector() {
+  clearTimer();
+  state.attempt = null;
+  state.answers = {};
 
   renderShell(`
     <section class="topbar">
       <div>
         <p class="eyebrow">Тренажёр</p>
         <h1>Тесты по информационным технологиям</h1>
-        <p class="lead">УрФУ и ЮУрГУ, проверка по ключам, разбор ошибок после отправки.</p>
+        <p class="lead">Новые варианты экзамена, тренировка по темам и повтор ошибок по материалам УрФУ и ЮУрГУ.</p>
       </div>
     </section>
-    <section class="quiz-grid" data-testid="quiz-selector">
-      ${tiles}
+    <section class="quiz-grid" data-testid="mode-selector">
+      <button class="quiz-tile" type="button" data-mode="exam">
+        <span>
+          <strong>Экзамен</strong>
+          Случайный вариант в формате выбранного вуза.
+        </span>
+        <span class="quiz-meta">УрФУ 30 / ЮУрГУ 20</span>
+      </button>
+      <button class="quiz-tile" type="button" data-mode="topic">
+        <span>
+          <strong>Тренировка по темам</strong>
+          Короткие наборы вопросов по слабым разделам.
+        </span>
+        <span class="quiz-meta">10 вопросов</span>
+      </button>
+    </section>
+    <section class="setup-panel">
+      <div>
+        <h2>Прогресс</h2>
+        <p class="review-note">Ошибок в повторении: ${state.history.mistakeQuestionIds.length}. Недавних вопросов: ${state.history.recentQuestionIds.length}.</p>
+      </div>
+      <button class="button secondary" type="button" data-action="clear-history">Сбросить историю</button>
     </section>
   `);
 }
 
-function renderQuestion(question) {
+function renderExamSetup() {
+  renderShell(`
+    <section class="topbar">
+      <div>
+        <p class="eyebrow">Экзамен</p>
+        <h1>Выбери формат</h1>
+        <p class="lead">Каждая попытка собирается заново из банка вопросов. Внутри попытки вопросы не повторяются.</p>
+      </div>
+    </section>
+    <section class="quiz-grid">
+      <button class="quiz-tile" type="button" data-start-exam="urfu">
+        <span>
+          <strong>УрФУ</strong>
+          Информационные технологии и сервисы.
+        </span>
+        <span class="quiz-meta">30 вопросов</span>
+      </button>
+      <button class="quiz-tile" type="button" data-start-exam="susu">
+        <span>
+          <strong>ЮУрГУ</strong>
+          Информационные технологии.
+        </span>
+        <span class="quiz-meta">20 минут · 20 вопросов</span>
+      </button>
+    </section>
+    <div class="actions">
+      <button class="button secondary" type="button" data-action="reset">К выбору</button>
+    </div>
+  `);
+}
+
+function renderTopicSetup(selectedUniversity = "urfu") {
+  const topicOptions = window.QUIZ_TOPICS[selectedUniversity]
+    .map((topic) => `<option value="${topic.id}">${escapeHtml(topic.title)}</option>`)
+    .join("");
+
+  renderShell(`
+    <section class="topbar">
+      <div>
+        <p class="eyebrow">Тренировка</p>
+        <h1>Выбери тему</h1>
+        <p class="lead">Короткий набор на 10 вопросов помогает быстро закрывать слабые места.</p>
+      </div>
+    </section>
+    <section class="setup-panel" data-testid="topic-setup">
+      <label>
+        <span class="field-label">Вуз</span>
+        <select data-testid="topic-university">
+          <option value="urfu" ${selectedUniversity === "urfu" ? "selected" : ""}>УрФУ</option>
+          <option value="susu" ${selectedUniversity === "susu" ? "selected" : ""}>ЮУрГУ</option>
+        </select>
+      </label>
+      <label>
+        <span class="field-label">Тема</span>
+        <select data-testid="topic-select">${topicOptions}</select>
+      </label>
+      <button class="button" type="button" data-testid="start-topic">Начать тренировку</button>
+      <button class="button secondary" type="button" data-action="reset">К выбору</button>
+    </section>
+  `);
+}
+
+function startAttempt(config) {
+  clearTimer();
+  state.lastConfig = { ...config };
+  state.attempt = window.QuizGenerator.createAttempt(config, window.QUESTION_BANK, state.history);
+  state.answers = {};
+  renderQuiz();
+  scrollTop();
+}
+
+function startTimer(seconds) {
+  state.timerRemaining = seconds;
+  const timer = document.querySelector('[data-testid="timer"]');
+  if (timer) {
+    timer.textContent = formatTime(state.timerRemaining);
+  }
+
+  state.timerId = setInterval(() => {
+    state.timerRemaining -= 1;
+    if (timer) {
+      timer.textContent = formatTime(Math.max(0, state.timerRemaining));
+    }
+
+    if (state.timerRemaining <= 0) {
+      clearTimer();
+      const form = document.querySelector('[data-testid="quiz-form"]');
+      if (form) {
+        submitQuiz(form);
+      }
+    }
+  }, 1000);
+}
+
+function renderQuestion(question, index) {
   const hint = question.hint ? `<p class="question-hint">${escapeHtml(question.hint)}</p>` : "";
   let control = "";
 
@@ -95,7 +244,7 @@ function renderQuestion(question) {
   return `
     <article class="question-card">
       <div class="question-head">
-        <p class="question-number">Вопрос ${question.id}</p>
+        <p class="question-number">Вопрос ${index + 1}</p>
         ${hint}
       </div>
       <p class="question-text">${escapeHtml(question.text)}</p>
@@ -104,34 +253,46 @@ function renderQuestion(question) {
   `;
 }
 
-function renderQuiz(quiz) {
-  state.quiz = quiz;
-  state.answers = {};
+function renderQuiz() {
+  const { attempt } = state;
+  const title =
+    attempt.mode === "topic"
+      ? `Тема: ${getTopicTitle(attempt.university, attempt.topic)}`
+      : attempt.mode === "mistakes"
+        ? "Повтор ошибок"
+        : `Экзамен ${getUniversityTitle(attempt.university)}`;
 
   renderShell(`
     <form data-testid="quiz-form">
       <section class="toolbar">
         <div class="toolbar-title">
-          <h2>${escapeHtml(quiz.title)}</h2>
-          <p>${escapeHtml(quiz.subtitle)}</p>
+          <h2>${escapeHtml(title)}</h2>
+          <p>${getUniversityTitle(attempt.university)} · ${attempt.actualCount} из ${attempt.requestedCount} вопросов</p>
         </div>
-        <div class="progress">${quiz.questions.length} вопросов</div>
+        <div class="toolbar-status">
+          ${attempt.timerSeconds ? `<span class="timer" data-testid="timer">${formatTime(attempt.timerSeconds)}</span>` : ""}
+          <span class="progress">${attempt.actualCount} вопросов</span>
+        </div>
       </section>
       <section class="question-list">
-        ${quiz.questions.map(renderQuestion).join("")}
+        ${attempt.questions.map(renderQuestion).join("")}
       </section>
       <div class="actions">
         <button class="button" type="submit" data-testid="submit-quiz">Проверить</button>
-        <button class="button secondary" type="button" data-action="back">К выбору</button>
+        <button class="button secondary" type="button" data-action="reset">К выбору</button>
       </div>
     </form>
   `);
+
+  if (attempt.timerSeconds) {
+    startTimer(attempt.timerSeconds);
+  }
 }
 
-function collectAnswers(form, quiz) {
+function collectAnswers(form, attempt) {
   const answers = {};
 
-  for (const question of quiz.questions) {
+  for (const question of attempt.questions) {
     if (question.type === "multiple") {
       answers[question.id] = [...form.querySelectorAll(`input[name="q-${question.id}"]:checked`)].map(
         (input) => input.value,
@@ -160,53 +321,80 @@ function collectAnswers(form, quiz) {
   return answers;
 }
 
-function getQuestionById(quiz, id) {
-  return quiz.questions.find((question) => question.id === id);
+function getQuestionById(id) {
+  return state.attempt.questions.find((question) => question.id === id);
 }
 
 function renderReview(result) {
-  const question = getQuestionById(state.quiz, result.questionId);
+  const question = getQuestionById(result.questionId);
   const status = result.isCorrect ? "Верно" : "Ошибка";
   const statusClass = result.isCorrect ? "correct" : "incorrect";
 
   return `
     <article class="result-card ${statusClass}">
       <p class="result-status">${status}</p>
-      <p class="question-text">Вопрос ${question.id}. ${escapeHtml(question.text)}</p>
+      <p class="question-text">${escapeHtml(question.text)}</p>
       <div class="answer-review">
         <span><b>Ваш ответ:</b> ${escapeHtml(result.actual)}</span>
         <span><b>Правильный ответ:</b> ${escapeHtml(result.expected)}</span>
+        <span><b>Тема:</b> ${escapeHtml(getTopicTitle(question.university, question.topic))}</span>
+        <span><b>Пояснение:</b> ${escapeHtml(question.explanation)}</span>
       </div>
     </article>
   `;
+}
+
+function submitQuiz(form) {
+  clearTimer();
+  state.answers = collectAnswers(form, state.attempt);
+  const summary = window.QuizEngine.gradeQuiz(state.attempt.questions, state.answers);
+  state.history = window.QuizGenerator.updateHistory(state.history, state.attempt, summary.results);
+  saveHistory();
+  renderResults(summary);
+  scrollTop();
+}
+
+function getTopicSummary(summary) {
+  const byTopic = new Map();
+
+  for (const result of summary.results) {
+    const question = getQuestionById(result.questionId);
+    const key = question.topic;
+    const current = byTopic.get(key) || { title: getTopicTitle(question.university, key), total: 0, correct: 0 };
+    current.total += 1;
+    current.correct += result.isCorrect ? 1 : 0;
+    byTopic.set(key, current);
+  }
+
+  return [...byTopic.values()]
+    .map((topic) => `${topic.title}: ${topic.correct}/${topic.total}`)
+    .join(" · ");
 }
 
 function renderResults(summary) {
   const incorrect = summary.results.filter((result) => !result.isCorrect);
   const reviewItems = incorrect.length === 0 ? summary.results : incorrect;
   const reviewTitle = incorrect.length === 0 ? "Все ответы верные" : "Ошибки и пропуски";
-  const reviewNote =
-    incorrect.length === 0
-      ? "Можно пройти другой пробник."
-      : `${incorrect.length} из ${summary.totalCount} требуют повторения.`;
+  const repeatDisabled = state.history.mistakeQuestionIds.length === 0 ? "disabled" : "";
 
   renderShell(`
     <section class="summary-panel" data-testid="result-panel">
       <div>
         <p class="eyebrow">Результат</p>
         <div class="score" data-testid="score">${summary.correctCount} из ${summary.totalCount}</div>
-        <p class="review-note">${escapeHtml(state.quiz.title)}</p>
+        <p class="review-note" data-testid="topic-summary">${escapeHtml(getTopicSummary(summary))}</p>
       </div>
       <div class="score-percent" data-testid="score-percent">${summary.percent}%</div>
     </section>
     <section class="topbar">
       <div>
         <h2>${reviewTitle}</h2>
-        <p class="lead">${reviewNote}</p>
+        <p class="lead">${incorrect.length === 0 ? "Можно брать новый вариант." : `${incorrect.length} вопросов стоит повторить.`}</p>
       </div>
       <div class="actions">
-        <button class="button" type="button" data-action="retry">Повторить</button>
-        <button class="button secondary" type="button" data-testid="reset-quiz" data-action="reset">К выбору</button>
+        <button class="button" type="button" data-action="new-attempt">Новый вариант</button>
+        <button class="button secondary" type="button" data-action="repeat-mistakes" ${repeatDisabled}>Повторить ошибки</button>
+        <button class="button secondary" type="button" data-action="reset">К выбору</button>
       </div>
     </section>
     <section class="review-list">
@@ -216,32 +404,61 @@ function renderResults(summary) {
 }
 
 app.addEventListener("click", (event) => {
-  const quizButton = event.target.closest("[data-quiz-id]");
-  if (quizButton) {
-    const quiz = window.QUIZ_SETS.find((item) => item.id === quizButton.dataset.quizId);
-    renderQuiz(quiz);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  const mode = event.target.closest("[data-mode]")?.dataset.mode;
+  if (mode === "exam") {
+    renderExamSetup();
+    scrollTop();
+    return;
+  }
+  if (mode === "topic") {
+    renderTopicSetup();
+    scrollTop();
+    return;
+  }
+
+  const examUniversity = event.target.closest("[data-start-exam]")?.dataset.startExam;
+  if (examUniversity) {
+    startAttempt({ mode: "exam", university: examUniversity });
+    return;
+  }
+
+  if (event.target.closest('[data-testid="start-topic"]')) {
+    const university = app.querySelector('[data-testid="topic-university"]').value;
+    const topic = app.querySelector('[data-testid="topic-select"]').value;
+    startAttempt({ mode: "topic", university, topic, count: 10 });
     return;
   }
 
   const action = event.target.closest("[data-action]")?.dataset.action;
-  if (action === "back" || action === "reset") {
-    renderSelector();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  if (action === "reset") {
+    renderModeSelector();
+    scrollTop();
     return;
   }
+  if (action === "new-attempt" && state.lastConfig) {
+    startAttempt(state.lastConfig);
+    return;
+  }
+  if (action === "repeat-mistakes" && state.attempt) {
+    startAttempt({ mode: "mistakes", university: state.attempt.university, count: 10 });
+    return;
+  }
+  if (action === "clear-history") {
+    state.history = window.QuizGenerator.createEmptyHistory();
+    saveHistory();
+    renderModeSelector();
+  }
+});
 
-  if (action === "retry" && state.quiz) {
-    renderQuiz(state.quiz);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+app.addEventListener("change", (event) => {
+  if (event.target.matches('[data-testid="topic-university"]')) {
+    renderTopicSetup(event.target.value);
   }
 });
 
 app.addEventListener("submit", (event) => {
   event.preventDefault();
-  state.answers = collectAnswers(event.target, state.quiz);
-  renderResults(window.QuizEngine.gradeQuiz(state.quiz.questions, state.answers));
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  submitQuiz(event.target);
 });
 
-renderSelector();
+renderModeSelector();
