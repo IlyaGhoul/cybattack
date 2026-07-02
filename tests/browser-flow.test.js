@@ -58,6 +58,13 @@ async function withPage(callback) {
   }
 }
 
+test("home screen does not show progress controls", async () => {
+  await withPage(async (page) => {
+    await page.waitForSelector('[data-testid="mode-selector"]');
+    assert.equal(await page.locator('[data-action="clear-history"]').count(), 0);
+  });
+});
+
 test("user can run a generated SUSU exam with timer and result actions", async () => {
   await withPage(async (page) => {
     await page.waitForSelector('[data-testid="mode-selector"]');

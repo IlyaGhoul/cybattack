@@ -93,13 +93,6 @@ function renderModeSelector() {
         <span class="quiz-meta">10 вопросов</span>
       </button>
     </section>
-    <section class="setup-panel">
-      <div>
-        <h2>Прогресс</h2>
-        <p class="review-note">Ошибок в повторении: ${state.history.mistakeQuestionIds.length}. Недавних вопросов: ${state.history.recentQuestionIds.length}.</p>
-      </div>
-      <button class="button secondary" type="button" data-action="clear-history">Сбросить историю</button>
-    </section>
   `);
 }
 
