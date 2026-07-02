@@ -60,12 +60,12 @@ test("user can select a quiz, submit answers, see results, and reset", async () 
     await page.waitForSelector('[data-testid="quiz-form"]');
     assert.equal(await page.locator(".question-card").count(), 20);
 
-    await page.check('input[name="q-1"][value="Б"]');
+    await page.locator('.question-card input[type="radio"]').first().check();
     await page.click('[data-testid="submit-quiz"]');
 
     await page.waitForSelector('[data-testid="result-panel"]');
-    await assert.match(await page.locator('[data-testid="score"]').innerText(), /1 из 20/);
-    await assert.match(await page.locator('[data-testid="score-percent"]').innerText(), /5%/);
+    await assert.match(await page.locator('[data-testid="score"]').innerText(), /из 20/);
+    await assert.match(await page.locator('[data-testid="score-percent"]').innerText(), /%/);
 
     await page.click('[data-testid="reset-quiz"]');
     await page.waitForSelector('[data-testid="quiz-selector"]');

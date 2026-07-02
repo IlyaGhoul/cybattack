@@ -6,12 +6,16 @@ const vm = require("node:vm");
 
 const { formatAnswer, gradeQuestion, gradeQuiz } = require("../quiz-engine");
 
-function loadQuizSets() {
+function loadQuizData() {
   const dataPath = path.join(__dirname, "..", "quiz-data.js");
   const code = fs.readFileSync(dataPath, "utf8");
   const context = { window: {} };
   vm.runInNewContext(code, context, { filename: dataPath });
-  return context.window.QUIZ_SETS;
+  return context.window;
+}
+
+function loadQuizSets() {
+  return loadQuizData().QUIZ_SETS;
 }
 
 test("grades a single-choice answer", () => {
@@ -173,4 +177,35 @@ test("provided answer keys produce full scores", () => {
     assert.equal(result.correctCount, quiz.questions.length, quiz.id);
     assert.equal(result.percent, 100, quiz.id);
   }
+});
+
+test("question bank has enough generated practice questions", () => {
+  const { QUESTION_BANK } = loadQuizData();
+  const urfuQuestions = QUESTION_BANK.filter((question) => question.university === "urfu");
+  const susuQuestions = QUESTION_BANK.filter((question) => question.university === "susu");
+
+  assert.ok(urfuQuestions.length >= 60, `expected at least 60 UrFU questions, got ${urfuQuestions.length}`);
+  assert.ok(susuQuestions.length >= 50, `expected at least 50 SUSU questions, got ${susuQuestions.length}`);
+});
+
+test("question bank ids are unique and questions have metadata", () => {
+  const { QUESTION_BANK } = loadQuizData();
+  const ids = new Set();
+
+  for (const question of QUESTION_BANK) {
+    assert.equal(ids.has(question.id), false, `duplicate id ${question.id}`);
+    ids.add(question.id);
+    assert.ok(question.university, `${question.id} is missing university`);
+    assert.ok(question.topic, `${question.id} is missing topic`);
+    assert.ok(question.explanation, `${question.id} is missing explanation`);
+  }
+});
+
+test("topic definitions cover both universities", () => {
+  const { QUIZ_TOPICS } = loadQuizData();
+
+  assert.ok(QUIZ_TOPICS.urfu.length >= 4);
+  assert.ok(QUIZ_TOPICS.susu.length >= 8);
+  assert.ok(QUIZ_TOPICS.urfu.every((topic) => topic.id && topic.title));
+  assert.ok(QUIZ_TOPICS.susu.every((topic) => topic.id && topic.title));
 });
