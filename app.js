@@ -6,6 +6,7 @@ const state = {
   answers: {},
   history: loadHistory(),
   lastConfig: null,
+  subject: "it",
   timerId: null,
   timerRemaining: null,
 };
@@ -54,8 +55,16 @@ function getUniversityTitle(university) {
   return university === "urfu" ? "УрФУ" : "ЮУрГУ";
 }
 
-function getTopicTitle(university, topicId) {
-  return window.QUIZ_TOPICS[university]?.find((topic) => topic.id === topicId)?.title || "Все темы";
+function getSubjectConfig(subject = state.subject) {
+  return window.QUIZ_SUBJECTS?.find((item) => item.id === subject) || window.QUIZ_SUBJECTS?.[0];
+}
+
+function getTopicList(subject, university) {
+  return window.QUIZ_TOPICS_BY_SUBJECT?.[subject]?.[university] || window.QUIZ_TOPICS[university] || [];
+}
+
+function getTopicTitle(subject, university, topicId) {
+  return getTopicList(subject || "it", university).find((topic) => topic.id === topicId)?.title || "Все темы";
 }
 
 function formatTime(seconds) {
@@ -68,14 +77,25 @@ function renderModeSelector() {
   clearTimer();
   state.attempt = null;
   state.answers = {};
+  const subject = getSubjectConfig();
+  const subjectButtons = window.QUIZ_SUBJECTS.map(
+    (item) => `
+      <button class="button ${item.id === state.subject ? "" : "secondary"}" type="button" data-subject="${item.id}">
+        ${escapeHtml(item.title)}
+      </button>
+    `,
+  ).join("");
 
   renderShell(`
     <section class="topbar">
       <div>
         <p class="eyebrow">Тренажёр</p>
-        <h1>Тесты по информационным технологиям</h1>
-        <p class="lead">Новые варианты экзамена, тренировка по темам и повтор ошибок по материалам УрФУ и ЮУрГУ.</p>
+        <h1>${escapeHtml(subject.title)}</h1>
+        <p class="lead">${escapeHtml(subject.lead)}</p>
       </div>
+    </section>
+    <section class="subject-strip" data-testid="subject-selector">
+      ${subjectButtons}
     </section>
     <section class="quiz-grid" data-testid="mode-selector">
       <button class="quiz-tile" type="button" data-mode="exam">
@@ -83,7 +103,7 @@ function renderModeSelector() {
           <strong>Экзамен</strong>
           Случайный вариант в формате выбранного вуза.
         </span>
-        <span class="quiz-meta">УрФУ 30 / ЮУрГУ 20</span>
+        <span class="quiz-meta">${escapeHtml(subject.examMeta)}</span>
       </button>
       <button class="quiz-tile" type="button" data-mode="topic">
         <span>
@@ -97,10 +117,13 @@ function renderModeSelector() {
 }
 
 function renderExamSetup() {
+  const subject = getSubjectConfig();
+  const isRussian = state.subject === "russian";
+
   renderShell(`
     <section class="topbar">
       <div>
-        <p class="eyebrow">Экзамен</p>
+        <p class="eyebrow">Экзамен · ${escapeHtml(subject.title)}</p>
         <h1>Выбери формат</h1>
         <p class="lead">Каждая попытка собирается заново из банка вопросов. Внутри попытки вопросы не повторяются.</p>
       </div>
@@ -109,16 +132,16 @@ function renderExamSetup() {
       <button class="quiz-tile" type="button" data-start-exam="urfu">
         <span>
           <strong>УрФУ</strong>
-          Информационные технологии и сервисы.
+          ${isRussian ? "Русский язык: орфография, пунктуация, культура речи и текст." : "Информационные технологии и сервисы."}
         </span>
-        <span class="quiz-meta">30 вопросов</span>
+        <span class="quiz-meta">${isRussian ? "17 заданий" : "30 вопросов"}</span>
       </button>
       <button class="quiz-tile" type="button" data-start-exam="susu">
         <span>
           <strong>ЮУрГУ</strong>
-          Информационные технологии.
+          ${isRussian ? "Русский язык: 20 вопросов по всем разделам программы." : "Информационные технологии."}
         </span>
-        <span class="quiz-meta">20 минут · 20 вопросов</span>
+        <span class="quiz-meta">${isRussian ? "30 минут · 20 вопросов" : "20 минут · 20 вопросов"}</span>
       </button>
     </section>
     <div class="actions">
@@ -128,14 +151,15 @@ function renderExamSetup() {
 }
 
 function renderTopicSetup(selectedUniversity = "urfu") {
-  const topicOptions = window.QUIZ_TOPICS[selectedUniversity]
+  const subject = getSubjectConfig();
+  const topicOptions = getTopicList(state.subject, selectedUniversity)
     .map((topic) => `<option value="${topic.id}">${escapeHtml(topic.title)}</option>`)
     .join("");
 
   renderShell(`
     <section class="topbar">
       <div>
-        <p class="eyebrow">Тренировка</p>
+        <p class="eyebrow">Тренировка · ${escapeHtml(subject.title)}</p>
         <h1>Выбери тему</h1>
         <p class="lead">Короткий набор на 10 вопросов помогает быстро закрывать слабые места.</p>
       </div>
@@ -250,7 +274,7 @@ function renderQuiz() {
   const { attempt } = state;
   const title =
     attempt.mode === "topic"
-      ? `Тема: ${getTopicTitle(attempt.university, attempt.topic)}`
+      ? `Тема: ${getTopicTitle(attempt.subject, attempt.university, attempt.topic)}`
       : attempt.mode === "mistakes"
         ? "Повтор ошибок"
         : `Экзамен ${getUniversityTitle(attempt.university)}`;
@@ -330,7 +354,7 @@ function renderReview(result) {
       <div class="answer-review">
         <span><b>Ваш ответ:</b> ${escapeHtml(result.actual)}</span>
         <span><b>Правильный ответ:</b> ${escapeHtml(result.expected)}</span>
-        <span><b>Тема:</b> ${escapeHtml(getTopicTitle(question.university, question.topic))}</span>
+        <span><b>Тема:</b> ${escapeHtml(getTopicTitle(question.subject, question.university, question.topic))}</span>
         <span><b>Пояснение:</b> ${escapeHtml(question.explanation)}</span>
       </div>
     </article>
@@ -353,7 +377,11 @@ function getTopicSummary(summary) {
   for (const result of summary.results) {
     const question = getQuestionById(result.questionId);
     const key = question.topic;
-    const current = byTopic.get(key) || { title: getTopicTitle(question.university, key), total: 0, correct: 0 };
+    const current = byTopic.get(key) || {
+      title: getTopicTitle(question.subject, question.university, key),
+      total: 0,
+      correct: 0,
+    };
     current.total += 1;
     current.correct += result.isCorrect ? 1 : 0;
     byTopic.set(key, current);
@@ -397,6 +425,14 @@ function renderResults(summary) {
 }
 
 app.addEventListener("click", (event) => {
+  const subject = event.target.closest("[data-subject]")?.dataset.subject;
+  if (subject) {
+    state.subject = subject;
+    renderModeSelector();
+    scrollTop();
+    return;
+  }
+
   const mode = event.target.closest("[data-mode]")?.dataset.mode;
   if (mode === "exam") {
     renderExamSetup();
@@ -411,14 +447,14 @@ app.addEventListener("click", (event) => {
 
   const examUniversity = event.target.closest("[data-start-exam]")?.dataset.startExam;
   if (examUniversity) {
-    startAttempt({ mode: "exam", university: examUniversity });
+    startAttempt({ mode: "exam", subject: state.subject, university: examUniversity });
     return;
   }
 
   if (event.target.closest('[data-testid="start-topic"]')) {
     const university = app.querySelector('[data-testid="topic-university"]').value;
     const topic = app.querySelector('[data-testid="topic-select"]').value;
-    startAttempt({ mode: "topic", university, topic, count: 10 });
+    startAttempt({ mode: "topic", subject: state.subject, university, topic, count: 10 });
     return;
   }
 
@@ -433,7 +469,7 @@ app.addEventListener("click", (event) => {
     return;
   }
   if (action === "repeat-mistakes" && state.attempt) {
-    startAttempt({ mode: "mistakes", university: state.attempt.university, count: 10 });
+    startAttempt({ mode: "mistakes", subject: state.attempt.subject, university: state.attempt.university, count: 10 });
     return;
   }
   if (action === "clear-history") {

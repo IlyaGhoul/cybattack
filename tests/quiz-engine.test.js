@@ -181,11 +181,23 @@ test("provided answer keys produce full scores", () => {
 
 test("question bank has enough generated practice questions", () => {
   const { QUESTION_BANK } = loadQuizData();
-  const urfuQuestions = QUESTION_BANK.filter((question) => question.university === "urfu");
-  const susuQuestions = QUESTION_BANK.filter((question) => question.university === "susu");
+  const itQuestions = QUESTION_BANK.filter((question) => (question.subject || "it") === "it");
+  const urfuQuestions = itQuestions.filter((question) => question.university === "urfu");
+  const susuQuestions = itQuestions.filter((question) => question.university === "susu");
+  const russianQuestions = QUESTION_BANK.filter((question) => question.subject === "russian");
+  const russianUrfuQuestions = russianQuestions.filter((question) => question.university === "urfu");
+  const russianSusuQuestions = russianQuestions.filter((question) => question.university === "susu");
 
   assert.ok(urfuQuestions.length >= 60, `expected at least 60 UrFU questions, got ${urfuQuestions.length}`);
   assert.ok(susuQuestions.length >= 50, `expected at least 50 SUSU questions, got ${susuQuestions.length}`);
+  assert.ok(
+    russianUrfuQuestions.length >= 50,
+    `expected at least 50 Russian UrFU questions, got ${russianUrfuQuestions.length}`,
+  );
+  assert.ok(
+    russianSusuQuestions.length >= 50,
+    `expected at least 50 Russian SUSU questions, got ${russianSusuQuestions.length}`,
+  );
 });
 
 test("question bank ids are unique and questions have metadata", () => {
@@ -202,10 +214,14 @@ test("question bank ids are unique and questions have metadata", () => {
 });
 
 test("topic definitions cover both universities", () => {
-  const { QUIZ_TOPICS } = loadQuizData();
+  const { QUIZ_TOPICS, QUIZ_TOPICS_BY_SUBJECT } = loadQuizData();
 
   assert.ok(QUIZ_TOPICS.urfu.length >= 4);
   assert.ok(QUIZ_TOPICS.susu.length >= 8);
   assert.ok(QUIZ_TOPICS.urfu.every((topic) => topic.id && topic.title));
   assert.ok(QUIZ_TOPICS.susu.every((topic) => topic.id && topic.title));
+  assert.ok(QUIZ_TOPICS_BY_SUBJECT.russian.urfu.length >= 7);
+  assert.ok(QUIZ_TOPICS_BY_SUBJECT.russian.susu.length >= 7);
+  assert.ok(QUIZ_TOPICS_BY_SUBJECT.russian.urfu.every((topic) => topic.id && topic.title));
+  assert.ok(QUIZ_TOPICS_BY_SUBJECT.russian.susu.every((topic) => topic.id && topic.title));
 });

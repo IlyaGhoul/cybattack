@@ -7,9 +7,10 @@ const {
   updateHistory,
 } = require("../quiz-generator");
 
-function makeQuestion(id, university = "urfu", topic = "systems") {
+function makeQuestion(id, university = "urfu", topic = "systems", subject = "it") {
   return {
     id,
+    subject,
     university,
     topic,
     type: "single",
@@ -49,6 +50,36 @@ test("creates a 20-question SUSU exam attempt with a 20-minute timer", () => {
   assert.equal(attempt.actualCount, 20);
   assert.equal(attempt.questions.length, 20);
   assert.equal(attempt.timerSeconds, 20 * 60);
+});
+
+test("creates Russian exam attempts with subject-specific format", () => {
+  const bank = [
+    ...Array.from({ length: 35 }, (_, index) => makeQuestion(`ru-u-${index}`, "urfu", "orthography", "russian")),
+    ...Array.from({ length: 25 }, (_, index) => makeQuestion(`ru-s-${index}`, "susu", "orthography", "russian")),
+    ...Array.from({ length: 40 }, (_, index) => makeQuestion(`it-u-${index}`, "urfu", "systems", "it")),
+  ];
+
+  const urfuAttempt = createAttempt(
+    { mode: "exam", subject: "russian", university: "urfu" },
+    bank,
+    createEmptyHistory(),
+    fixedRng,
+  );
+  const susuAttempt = createAttempt(
+    { mode: "exam", subject: "russian", university: "susu" },
+    bank,
+    createEmptyHistory(),
+    fixedRng,
+  );
+
+  assert.equal(urfuAttempt.requestedCount, 17);
+  assert.equal(urfuAttempt.questions.length, 17);
+  assert.equal(urfuAttempt.timerSeconds, null);
+  assert.ok(urfuAttempt.questions.every((question) => question.subject === "russian"));
+  assert.equal(susuAttempt.requestedCount, 20);
+  assert.equal(susuAttempt.questions.length, 20);
+  assert.equal(susuAttempt.timerSeconds, 30 * 60);
+  assert.ok(susuAttempt.questions.every((question) => question.subject === "russian"));
 });
 
 test("creates a topic training attempt with the requested count", () => {

@@ -8,12 +8,24 @@
   root.QuizGenerator = generator;
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   const EXAM_COUNTS = {
-    urfu: 30,
-    susu: 20,
+    it: {
+      urfu: 30,
+      susu: 20,
+    },
+    russian: {
+      urfu: 17,
+      susu: 20,
+    },
   };
   const TIMER_SECONDS = {
-    urfu: null,
-    susu: 20 * 60,
+    it: {
+      urfu: null,
+      susu: 20 * 60,
+    },
+    russian: {
+      urfu: null,
+      susu: 30 * 60,
+    },
   };
   const DEFAULT_TOPIC_COUNT = 10;
   const RECENT_LIMIT = 90;
@@ -57,7 +69,8 @@
 
   function getRequestedCount(config) {
     if (config.mode === "exam") {
-      return EXAM_COUNTS[config.university] || DEFAULT_TOPIC_COUNT;
+      const subject = config.subject || "it";
+      return EXAM_COUNTS[subject]?.[config.university] || DEFAULT_TOPIC_COUNT;
     }
 
     if (config.mode === "mistakes") {
@@ -68,7 +81,10 @@
   }
 
   function filterPool(config, questionBank, history) {
-    const byUniversity = questionBank.filter((question) => question.university === config.university);
+    const subject = config.subject || "it";
+    const byUniversity = questionBank.filter(
+      (question) => (question.subject || "it") === subject && question.university === config.university,
+    );
 
     if (config.mode === "mistakes") {
       const mistakeIds = new Set(history.mistakeQuestionIds);
@@ -102,12 +118,13 @@
 
     return {
       mode: config.mode,
+      subject: config.subject || "it",
       university: config.university,
       topic: config.topic || null,
       questions,
       requestedCount,
       actualCount: questions.length,
-      timerSeconds: config.mode === "exam" ? TIMER_SECONDS[config.university] ?? null : null,
+      timerSeconds: config.mode === "exam" ? TIMER_SECONDS[config.subject || "it"]?.[config.university] ?? null : null,
     };
   }
 

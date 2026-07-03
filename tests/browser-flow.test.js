@@ -65,6 +65,20 @@ test("home screen does not show progress controls", async () => {
   });
 });
 
+test("user can select Russian and run a SUSU Russian exam", async () => {
+  await withPage(async (page) => {
+    await page.waitForSelector('[data-testid="mode-selector"]');
+    await page.click('[data-subject="russian"]');
+    await page.click('[data-mode="exam"]');
+    await page.click('[data-start-exam="susu"]');
+    await page.waitForSelector('[data-testid="quiz-form"]');
+
+    assert.equal(await page.locator(".question-card").count(), 20);
+    await assert.match(await page.locator('[data-testid="timer"]').innerText(), /30:00/);
+    await assert.match(await page.locator(".toolbar h2").innerText(), /Экзамен ЮУрГУ/);
+  });
+});
+
 test("user can run a generated SUSU exam with timer and result actions", async () => {
   await withPage(async (page) => {
     await page.waitForSelector('[data-testid="mode-selector"]');

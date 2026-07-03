@@ -93,6 +93,12 @@ h1 {
   gap: 16px;
 }
 
+.subject-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .quiz-tile,
 .question-card,
 .result-card,
