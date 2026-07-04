@@ -187,6 +187,9 @@ test("question bank has enough generated practice questions", () => {
   const russianQuestions = QUESTION_BANK.filter((question) => question.subject === "russian");
   const russianUrfuQuestions = russianQuestions.filter((question) => question.university === "urfu");
   const russianSusuQuestions = russianQuestions.filter((question) => question.university === "susu");
+  const programmingQuestions = QUESTION_BANK.filter((question) => question.subject === "programming");
+  const programmingUrfuQuestions = programmingQuestions.filter((question) => question.university === "urfu");
+  const programmingSusuQuestions = programmingQuestions.filter((question) => question.university === "susu");
 
   assert.ok(urfuQuestions.length >= 60, `expected at least 60 UrFU questions, got ${urfuQuestions.length}`);
   assert.ok(susuQuestions.length >= 50, `expected at least 50 SUSU questions, got ${susuQuestions.length}`);
@@ -197,6 +200,14 @@ test("question bank has enough generated practice questions", () => {
   assert.ok(
     russianSusuQuestions.length >= 50,
     `expected at least 50 Russian SUSU questions, got ${russianSusuQuestions.length}`,
+  );
+  assert.ok(
+    programmingUrfuQuestions.length >= 80,
+    `expected at least 80 Programming UrFU questions, got ${programmingUrfuQuestions.length}`,
+  );
+  assert.ok(
+    programmingSusuQuestions.length >= 80,
+    `expected at least 80 Programming SUSU questions, got ${programmingSusuQuestions.length}`,
   );
 });
 
@@ -224,4 +235,8 @@ test("topic definitions cover both universities", () => {
   assert.ok(QUIZ_TOPICS_BY_SUBJECT.russian.susu.length >= 7);
   assert.ok(QUIZ_TOPICS_BY_SUBJECT.russian.urfu.every((topic) => topic.id && topic.title));
   assert.ok(QUIZ_TOPICS_BY_SUBJECT.russian.susu.every((topic) => topic.id && topic.title));
+  assert.ok(QUIZ_TOPICS_BY_SUBJECT.programming.urfu.length >= 8);
+  assert.ok(QUIZ_TOPICS_BY_SUBJECT.programming.susu.length >= 8);
+  assert.ok(QUIZ_TOPICS_BY_SUBJECT.programming.urfu.every((topic) => topic.id && topic.title));
+  assert.ok(QUIZ_TOPICS_BY_SUBJECT.programming.susu.every((topic) => topic.id && topic.title));
 });

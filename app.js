@@ -67,6 +67,43 @@ function getTopicTitle(subject, university, topicId) {
   return getTopicList(subject || "it", university).find((topic) => topic.id === topicId)?.title || "Все темы";
 }
 
+function getExamCard(university) {
+  const cards = {
+    it: {
+      urfu: {
+        description: "Информационные технологии и сервисы.",
+        meta: "30 вопросов",
+      },
+      susu: {
+        description: "Информационные технологии.",
+        meta: "20 минут · 20 вопросов",
+      },
+    },
+    russian: {
+      urfu: {
+        description: "Русский язык: орфография, пунктуация, культура речи и текст.",
+        meta: "17 заданий",
+      },
+      susu: {
+        description: "Русский язык: 20 вопросов по всем разделам программы.",
+        meta: "30 минут · 20 вопросов",
+      },
+    },
+    programming: {
+      urfu: {
+        description: "Алгоритмы: технология программирования, блок-схемы, ветвления, циклы и массивы.",
+        meta: "90 минут · 30 заданий",
+      },
+      susu: {
+        description: "Основы программирования: алгоритмы, язык, массивы, функции, ООП, модули и отладка.",
+        meta: "60 минут · 15 вопросов",
+      },
+    },
+  };
+
+  return cards[state.subject]?.[university] || cards.it[university];
+}
+
 function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
@@ -118,7 +155,8 @@ function renderModeSelector() {
 
 function renderExamSetup() {
   const subject = getSubjectConfig();
-  const isRussian = state.subject === "russian";
+  const urfuCard = getExamCard("urfu");
+  const susuCard = getExamCard("susu");
 
   renderShell(`
     <section class="topbar">
@@ -132,16 +170,16 @@ function renderExamSetup() {
       <button class="quiz-tile" type="button" data-start-exam="urfu">
         <span>
           <strong>УрФУ</strong>
-          ${isRussian ? "Русский язык: орфография, пунктуация, культура речи и текст." : "Информационные технологии и сервисы."}
+          ${escapeHtml(urfuCard.description)}
         </span>
-        <span class="quiz-meta">${isRussian ? "17 заданий" : "30 вопросов"}</span>
+        <span class="quiz-meta">${escapeHtml(urfuCard.meta)}</span>
       </button>
       <button class="quiz-tile" type="button" data-start-exam="susu">
         <span>
           <strong>ЮУрГУ</strong>
-          ${isRussian ? "Русский язык: 20 вопросов по всем разделам программы." : "Информационные технологии."}
+          ${escapeHtml(susuCard.description)}
         </span>
-        <span class="quiz-meta">${isRussian ? "30 минут · 20 вопросов" : "20 минут · 20 вопросов"}</span>
+        <span class="quiz-meta">${escapeHtml(susuCard.meta)}</span>
       </button>
     </section>
     <div class="actions">

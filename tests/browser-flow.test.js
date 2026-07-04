@@ -79,6 +79,20 @@ test("user can select Russian and run a SUSU Russian exam", async () => {
   });
 });
 
+test("user can select Programming and run a UrFU programming exam", async () => {
+  await withPage(async (page) => {
+    await page.waitForSelector('[data-testid="mode-selector"]');
+    await page.click('[data-subject="programming"]');
+    await page.click('[data-mode="exam"]');
+    await page.click('[data-start-exam="urfu"]');
+    await page.waitForSelector('[data-testid="quiz-form"]');
+
+    assert.equal(await page.locator(".question-card").count(), 30);
+    await assert.match(await page.locator('[data-testid="timer"]').innerText(), /90:00/);
+    await assert.match(await page.locator(".toolbar h2").innerText(), /Экзамен УрФУ/);
+  });
+});
+
 test("user can run a generated SUSU exam with timer and result actions", async () => {
   await withPage(async (page) => {
     await page.waitForSelector('[data-testid="mode-selector"]');

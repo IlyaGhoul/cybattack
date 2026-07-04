@@ -82,6 +82,36 @@ test("creates Russian exam attempts with subject-specific format", () => {
   assert.ok(susuAttempt.questions.every((question) => question.subject === "russian"));
 });
 
+test("creates programming exam attempts with subject-specific format", () => {
+  const bank = [
+    ...Array.from({ length: 35 }, (_, index) => makeQuestion(`prog-u-${index}`, "urfu", "flowcharts", "programming")),
+    ...Array.from({ length: 20 }, (_, index) => makeQuestion(`prog-s-${index}`, "susu", "oop", "programming")),
+    ...Array.from({ length: 40 }, (_, index) => makeQuestion(`it-u-${index}`, "urfu", "systems", "it")),
+  ];
+
+  const urfuAttempt = createAttempt(
+    { mode: "exam", subject: "programming", university: "urfu" },
+    bank,
+    createEmptyHistory(),
+    fixedRng,
+  );
+  const susuAttempt = createAttempt(
+    { mode: "exam", subject: "programming", university: "susu" },
+    bank,
+    createEmptyHistory(),
+    fixedRng,
+  );
+
+  assert.equal(urfuAttempt.requestedCount, 30);
+  assert.equal(urfuAttempt.questions.length, 30);
+  assert.equal(urfuAttempt.timerSeconds, 90 * 60);
+  assert.ok(urfuAttempt.questions.every((question) => question.subject === "programming"));
+  assert.equal(susuAttempt.requestedCount, 15);
+  assert.equal(susuAttempt.questions.length, 15);
+  assert.equal(susuAttempt.timerSeconds, 60 * 60);
+  assert.ok(susuAttempt.questions.every((question) => question.subject === "programming"));
+});
+
 test("creates a topic training attempt with the requested count", () => {
   const bank = [
     ...Array.from({ length: 12 }, (_, index) => makeQuestion(`sys-${index}`, "urfu", "systems")),

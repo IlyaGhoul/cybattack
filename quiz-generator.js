@@ -16,6 +16,10 @@
       urfu: 17,
       susu: 20,
     },
+    programming: {
+      urfu: 30,
+      susu: 15,
+    },
   };
   const TIMER_SECONDS = {
     it: {
@@ -25,6 +29,10 @@
     russian: {
       urfu: null,
       susu: 30 * 60,
+    },
+    programming: {
+      urfu: 90 * 60,
+      susu: 60 * 60,
     },
   };
   const DEFAULT_TOPIC_COUNT = 10;
