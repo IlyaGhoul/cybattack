@@ -115,6 +115,43 @@
     return shuffle(source, rng).slice(0, requestedCount);
   }
 
+  function selectExamQuestions(pool, requestedCount, history, rng) {
+    const uniquePool = uniqueById(pool);
+    const recentIds = new Set(history.recentQuestionIds);
+    const freshPool = uniquePool.filter((question) => !recentIds.has(question.id));
+    const source = freshPool.length >= requestedCount ? freshPool : uniquePool;
+    const groups = new Map();
+
+    for (const question of shuffle(source, rng)) {
+      const topic = question.topic || "general";
+      const topicQuestions = groups.get(topic) || [];
+      topicQuestions.push(question);
+      groups.set(topic, topicQuestions);
+    }
+
+    const topicQueues = [...groups.values()].map((questions) =>
+      shuffle(questions, rng).sort((left, right) => Number(Boolean(right.examFocus)) - Number(Boolean(left.examFocus))),
+    );
+    const selected = [];
+
+    while (selected.length < requestedCount && topicQueues.some((questions) => questions.length > 0)) {
+      const activeQueues = shuffle(
+        topicQueues.filter((questions) => questions.length > 0),
+        rng,
+      );
+
+      for (const queue of activeQueues) {
+        if (selected.length >= requestedCount) {
+          break;
+        }
+
+        selected.push(queue.shift());
+      }
+    }
+
+    return selected;
+  }
+
   function createAttempt(config, questionBank, rawHistory, rng = Math.random) {
     const history = normalizeHistory(rawHistory);
     const requestedCount = getRequestedCount(config);
@@ -122,6 +159,8 @@
     const questions =
       config.mode === "mistakes"
         ? shuffle(uniqueById(pool), rng).slice(0, requestedCount)
+        : config.mode === "exam"
+          ? selectExamQuestions(pool, requestedCount, history, rng)
         : selectQuestions(pool, requestedCount, history, rng);
 
     return {

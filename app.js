@@ -380,6 +380,33 @@ function getQuestionById(id) {
   return state.attempt.questions.find((question) => question.id === id);
 }
 
+function renderOptionExplanations(question) {
+  if (!question.optionExplanations) {
+    return "";
+  }
+
+  const items = question.options
+    .map((option) => {
+      const explanation = question.optionExplanations[option.letter];
+      return explanation ? `<span><b>${option.letter})</b> ${escapeHtml(explanation)}</span>` : "";
+    })
+    .filter(Boolean)
+    .join("");
+
+  return items ? `<span><b>Разбор вариантов:</b></span>${items}` : "";
+}
+
+function renderAnalysisSteps(question) {
+  if (!Array.isArray(question.analysisSteps) || question.analysisSteps.length === 0) {
+    return "";
+  }
+
+  return `
+    <span><b>Ход решения:</b></span>
+    ${question.analysisSteps.map((step) => `<span>${escapeHtml(step)}</span>`).join("")}
+  `;
+}
+
 function renderReview(result) {
   const question = getQuestionById(result.questionId);
   const status = result.isCorrect ? "Верно" : "Ошибка";
@@ -394,6 +421,8 @@ function renderReview(result) {
         <span><b>Правильный ответ:</b> ${escapeHtml(result.expected)}</span>
         <span><b>Тема:</b> ${escapeHtml(getTopicTitle(question.subject, question.university, question.topic))}</span>
         <span><b>Пояснение:</b> ${escapeHtml(question.explanation)}</span>
+        ${renderAnalysisSteps(question)}
+        ${renderOptionExplanations(question)}
       </div>
     </article>
   `;

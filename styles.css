@@ -254,6 +254,7 @@ h1 {
 .question-text {
   margin-bottom: 0;
   font-weight: 700;
+  white-space: pre-line;
 }
 
 .answers {

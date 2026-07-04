@@ -112,6 +112,21 @@ test("creates programming exam attempts with subject-specific format", () => {
   assert.ok(susuAttempt.questions.every((question) => question.subject === "programming"));
 });
 
+test("exam attempts sample questions across available topics", () => {
+  const topics = ["systems", "services", "data", "security"];
+  const bank = topics.flatMap((topic) =>
+    Array.from({ length: 10 }, (_, index) => makeQuestion(`${topic}-${index}`, "urfu", topic)),
+  );
+
+  const attempt = createAttempt({ mode: "exam", university: "urfu" }, bank, createEmptyHistory(), fixedRng);
+  const selectedTopics = new Set(attempt.questions.map((question) => question.topic));
+  const topicCounts = topics.map((topic) => attempt.questions.filter((question) => question.topic === topic).length);
+
+  assert.equal(attempt.questions.length, 30);
+  assert.equal(selectedTopics.size, topics.length);
+  assert.ok(Math.max(...topicCounts) - Math.min(...topicCounts) <= 2, topicCounts.join(", "));
+});
+
 test("creates a topic training attempt with the requested count", () => {
   const bank = [
     ...Array.from({ length: 12 }, (_, index) => makeQuestion(`sys-${index}`, "urfu", "systems")),

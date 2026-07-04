@@ -257,7 +257,7 @@ test("incorrect options avoid low-signal distractors", () => {
 test("programming single-choice distractors come from the same topic answer pool", () => {
   const { QUESTION_BANK } = loadQuizData();
   const programmingSingles = QUESTION_BANK.filter(
-    (question) => question.subject === "programming" && question.type === "single",
+    (question) => question.subject === "programming" && question.type === "single" && !question.examFocus,
   );
   const answerPools = new Map();
 
@@ -283,6 +283,38 @@ test("programming single-choice distractors come from the same topic answer pool
       }
     }
   }
+});
+
+test("programming bank includes exam-style analysis tasks", () => {
+  const { QUESTION_BANK } = loadQuizData();
+  const programmingQuestions = QUESTION_BANK.filter((question) => question.subject === "programming");
+  const programmingTypes = new Set(programmingQuestions.map((question) => question.type));
+  const analysisQuestions = programmingQuestions.filter((question) =>
+    /псевдокод|таблица|массив|матриц|A\s*=|for|while|если/i.test(question.text),
+  );
+  const explainedTrapQuestions = programmingQuestions.filter((question) => question.optionExplanations);
+
+  assert.ok(programmingTypes.has("multiple"), "programming bank should include multiple-answer tasks");
+  assert.ok(programmingTypes.has("matching"), "programming bank should include matching tasks");
+  assert.ok(analysisQuestions.length >= 8, `expected at least 8 analysis tasks, got ${analysisQuestions.length}`);
+  assert.ok(
+    explainedTrapQuestions.length >= 6,
+    `expected at least 6 tasks with option explanations, got ${explainedTrapQuestions.length}`,
+  );
+});
+
+test("question bank includes exam-focused tasks from study notes", () => {
+  const { QUESTION_BANK } = loadQuizData();
+  const examFocusedBySubject = new Map();
+
+  for (const question of QUESTION_BANK.filter((item) => item.examFocus)) {
+    const subject = question.subject || "it";
+    examFocusedBySubject.set(subject, (examFocusedBySubject.get(subject) || 0) + 1);
+  }
+
+  assert.ok((examFocusedBySubject.get("it") || 0) >= 6, "IT should have exam-focused tasks");
+  assert.ok((examFocusedBySubject.get("russian") || 0) >= 6, "Russian should have exam-focused tasks");
+  assert.ok((examFocusedBySubject.get("programming") || 0) >= 10, "Programming should have exam-focused tasks");
 });
 
 test("topic definitions cover both universities", () => {
