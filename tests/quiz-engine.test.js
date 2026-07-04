@@ -224,6 +224,67 @@ test("question bank ids are unique and questions have metadata", () => {
   }
 });
 
+test("incorrect options avoid low-signal distractors", () => {
+  const { QUESTION_BANK } = loadQuizData();
+  const weakPatterns = [
+    /цвет/i,
+    /монитор/i,
+    /диплом/i,
+    /мебел/i,
+    /корпус/i,
+    /автоматическ[а-я ]+экзамен/i,
+    /случайн[а-я ]+команд/i,
+  ];
+
+  for (const question of QUESTION_BANK) {
+    if (question.type === "matching") {
+      continue;
+    }
+
+    const correctLetters = new Set(Array.isArray(question.correct) ? question.correct : [question.correct]);
+    const incorrectOptions = question.options.filter((option) => !correctLetters.has(option.letter));
+
+    for (const option of incorrectOptions) {
+      assert.equal(
+        weakPatterns.some((pattern) => pattern.test(option.text)),
+        false,
+        `${question.id} has an obvious distractor: ${option.text}`,
+      );
+    }
+  }
+});
+
+test("programming single-choice distractors come from the same topic answer pool", () => {
+  const { QUESTION_BANK } = loadQuizData();
+  const programmingSingles = QUESTION_BANK.filter(
+    (question) => question.subject === "programming" && question.type === "single",
+  );
+  const answerPools = new Map();
+
+  for (const question of programmingSingles) {
+    const key = `${question.university}:${question.topic}`;
+    const correctOption = question.options.find((option) => option.letter === question.correct);
+    const pool = answerPools.get(key) || new Set();
+    pool.add(correctOption.text);
+    answerPools.set(key, pool);
+  }
+
+  for (const question of programmingSingles) {
+    const key = `${question.university}:${question.topic}`;
+    const pool = answerPools.get(key);
+
+    for (const option of question.options) {
+      if (option.letter !== question.correct) {
+        assert.equal(
+          pool.has(option.text),
+          true,
+          `${question.id} has a distractor outside its topic pool: ${option.text}`,
+        );
+      }
+    }
+  }
+});
+
 test("topic definitions cover both universities", () => {
   const { QUIZ_TOPICS, QUIZ_TOPICS_BY_SUBJECT } = loadQuizData();
 

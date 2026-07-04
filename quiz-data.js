@@ -169,7 +169,7 @@
       "urfu-systems-multi-1",
       "Какие элементы относятся к информационным процессам?",
       ["сбор информации", "хранение информации", "передача информации"],
-      ["случайное удаление файлов", "изменение цвета корпуса компьютера", "перестановка мебели"],
+      ["обслуживание аппаратных узлов", "настройка параметров электропитания", "замена неисправного кабеля"],
       "К информационным процессам обычно относят сбор, хранение, обработку, передачу и представление информации.",
     ),
     matchingQuestion(
@@ -391,6 +391,31 @@
     return rows.map(([term, definition]) => ({ term, definition }));
   }
 
+  const WEAK_DISTRACTOR_PATTERNS = [
+    /цвет/i,
+    /монитор/i,
+    /диплом/i,
+    /мебел/i,
+    /корпус/i,
+    /автоматическ[а-яё ]+экзамен/i,
+    /случайн[а-яё ]+команд/i,
+  ];
+
+  function isWeakDistractor(text) {
+    return WEAK_DISTRACTOR_PATTERNS.some((pattern) => pattern.test(text));
+  }
+
+  function buildTopicAnswerDistractors(row, rows, index) {
+    if (!rows) {
+      return row.slice(2, 5);
+    }
+
+    return rotate(
+      rows.map((candidate) => candidate[1]).filter((answer) => answer !== row[1] && !isWeakDistractor(answer)),
+      index + 1,
+    ).slice(0, 3);
+  }
+
   function russianQuestion(university, topic, index, row) {
     const question = singleQuestion(
       university,
@@ -404,14 +429,14 @@
     return { ...question, subject: "russian" };
   }
 
-  function programmingQuestion(university, topic, index, row) {
+  function programmingQuestion(university, topic, index, row, rows) {
     const question = singleQuestion(
       university,
       topic,
       `${university}-programming-${topic}-${index + 1}`,
       row[0],
       row[1],
-      row.slice(2, 5),
+      buildTopicAnswerDistractors(row, rows, index),
       row[5],
     );
     return { ...question, subject: "programming" };
@@ -2209,7 +2234,7 @@
 
   function programmingQuestions(university) {
     return Object.entries(programmingRows[university]).flatMap(([topic, rows]) =>
-      rows.map((row, index) => programmingQuestion(university, topic, index, row)),
+      rows.map((row, index) => programmingQuestion(university, topic, index, row, rows)),
     );
   }
 
