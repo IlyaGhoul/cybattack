@@ -134,6 +134,11 @@ test("user can run topic training and return to mode selection", async () => {
     await page.waitForSelector('[data-testid="result-panel"]');
     await assert.match(await page.locator('[data-testid="topic-summary"]').innerText(), /Информационная безопасность/);
 
+    assert.equal(await page.locator('[data-action="choose-topic"]').count(), 1);
+    await page.click('[data-action="choose-topic"]');
+    await page.waitForSelector('[data-testid="topic-setup"]');
+    assert.equal(await page.locator('[data-testid="topic-university"]').inputValue(), "urfu");
+
     await page.click('[data-action="reset"]');
     await page.waitForSelector('[data-testid="mode-selector"]');
   });

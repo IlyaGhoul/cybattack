@@ -464,6 +464,10 @@ function renderResults(summary) {
   const reviewItems = incorrect.length === 0 ? summary.results : incorrect;
   const reviewTitle = incorrect.length === 0 ? "Все ответы верные" : "Ошибки и пропуски";
   const repeatDisabled = state.history.mistakeQuestionIds.length === 0 ? "disabled" : "";
+  const chooseTopicButton =
+    state.attempt.mode === "topic"
+      ? '<button class="button secondary" type="button" data-action="choose-topic">К выбору темы</button>'
+      : "";
 
   renderShell(`
     <section class="summary-panel" data-testid="result-panel">
@@ -481,6 +485,7 @@ function renderResults(summary) {
       </div>
       <div class="actions">
         <button class="button" type="button" data-action="new-attempt">Новый вариант</button>
+        ${chooseTopicButton}
         <button class="button secondary" type="button" data-action="repeat-mistakes" ${repeatDisabled}>Повторить ошибки</button>
         <button class="button secondary" type="button" data-action="reset">К выбору</button>
       </div>
@@ -533,6 +538,11 @@ app.addEventListener("click", (event) => {
   }
   if (action === "new-attempt" && state.lastConfig) {
     startAttempt(state.lastConfig);
+    return;
+  }
+  if (action === "choose-topic" && state.attempt) {
+    renderTopicSetup(state.attempt.university);
+    scrollTop();
     return;
   }
   if (action === "repeat-mistakes" && state.attempt) {
