@@ -138,6 +138,7 @@ test("user can run topic training and return to mode selection", async () => {
     await page.click('[data-action="choose-topic"]');
     await page.waitForSelector('[data-testid="topic-setup"]');
     assert.equal(await page.locator('[data-testid="topic-university"]').inputValue(), "urfu");
+    assert.equal(await page.locator('[data-testid="topic-select"]').inputValue(), "security");
 
     await page.click('[data-action="reset"]');
     await page.waitForSelector('[data-testid="mode-selector"]');

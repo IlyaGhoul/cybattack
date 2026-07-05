@@ -188,10 +188,13 @@ function renderExamSetup() {
   `);
 }
 
-function renderTopicSetup(selectedUniversity = "urfu") {
+function renderTopicSetup(selectedUniversity = "urfu", selectedTopic = null) {
   const subject = getSubjectConfig();
   const topicOptions = getTopicList(state.subject, selectedUniversity)
-    .map((topic) => `<option value="${topic.id}">${escapeHtml(topic.title)}</option>`)
+    .map(
+      (topic) =>
+        `<option value="${topic.id}" ${topic.id === selectedTopic ? "selected" : ""}>${escapeHtml(topic.title)}</option>`,
+    )
     .join("");
 
   renderShell(`
@@ -541,7 +544,7 @@ app.addEventListener("click", (event) => {
     return;
   }
   if (action === "choose-topic" && state.attempt) {
-    renderTopicSetup(state.attempt.university);
+    renderTopicSetup(state.attempt.university, state.attempt.topic);
     scrollTop();
     return;
   }
