@@ -317,6 +317,41 @@ test("question bank includes exam-focused tasks from study notes", () => {
   assert.ok((examFocusedBySubject.get("programming") || 0) >= 10, "Programming should have exam-focused tasks");
 });
 
+test("Russian spelling questions hide the checked letters in options", () => {
+  const { QUESTION_BANK } = loadQuizData();
+  const spellingQuestions = QUESTION_BANK.filter(
+    (question) => question.subject === "russian" && question.topic === "orthography" && question.type === "single",
+  );
+
+  assert.ok(spellingQuestions.length > 0, "expected Russian spelling questions");
+
+  for (const question of spellingQuestions) {
+    for (const option of question.options) {
+      assert.match(
+        option.text,
+        /_|\(не\)/i,
+        `${question.id} exposes the completed spelling in option ${option.letter}: ${option.text}`,
+      );
+    }
+  }
+});
+
+test("Russian verb-ending tasks use blanks instead of completed forms", () => {
+  const { QUESTION_BANK } = loadQuizData();
+  const verbEndingQuestions = QUESTION_BANK.filter(
+    (question) =>
+      question.subject === "russian" &&
+      question.type === "single" &&
+      /глагол|блещ|бор_тся|окончан/i.test(question.text),
+  );
+
+  assert.ok(verbEndingQuestions.length > 0, "expected Russian verb-ending questions");
+  assert.ok(
+    verbEndingQuestions.every((question) => question.text.includes("_")),
+    verbEndingQuestions.map((question) => question.id).join(", "),
+  );
+});
+
 test("topic definitions cover both universities", () => {
   const { QUIZ_TOPICS, QUIZ_TOPICS_BY_SUBJECT } = loadQuizData();
 
