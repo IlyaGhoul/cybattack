@@ -352,6 +352,33 @@ test("Russian verb-ending tasks use blanks instead of completed forms", () => {
   );
 });
 
+test("Russian orthoepy marks тОрты as the correct stress", () => {
+  const { QUESTION_BANK } = loadQuizData();
+  const cakeStressQuestions = QUESTION_BANK.filter(
+    (question) =>
+      question.subject === "russian" &&
+      question.topic === "orthoepy" &&
+      question.type === "single" &&
+      question.options.some((option) => /т[оО]рт[ыЫ]/.test(option.text)),
+  );
+
+  assert.ok(cakeStressQuestions.length > 0, "expected Russian orthoepy questions about тОрты");
+
+  for (const question of cakeStressQuestions) {
+    const correctOption = question.options.find((option) => option.letter === question.correct);
+    assert.notEqual(correctOption.text, "тортЫ", `${question.id} marks тортЫ as correct`);
+    if (question.options.some((option) => option.text === "тОрты")) {
+      assert.equal(correctOption.text, "тОрты", `${question.id} does not accept тОрты as correct`);
+    }
+
+    const normalizedExplanations = [
+      question.explanation,
+      ...Object.values(question.optionExplanations || {}),
+    ].join(" ");
+    assert.doesNotMatch(normalizedExplanations, /Правильно тортЫ|Нормативное ударение: тортЫ/);
+  }
+});
+
 test("topic definitions cover both universities", () => {
   const { QUIZ_TOPICS, QUIZ_TOPICS_BY_SUBJECT } = loadQuizData();
 
