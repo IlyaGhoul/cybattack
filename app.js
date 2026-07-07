@@ -52,6 +52,10 @@ function scrollTop() {
 }
 
 function getUniversityTitle(university) {
+  if (university === "practice") {
+    return "Русский язык";
+  }
+
   return university === "urfu" ? "УрФУ" : "ЮУрГУ";
 }
 
@@ -115,6 +119,7 @@ function renderModeSelector() {
   state.attempt = null;
   state.answers = {};
   const subject = getSubjectConfig();
+  const specialTests = (window.SPECIAL_TESTS || []).filter((item) => item.subject === state.subject);
   const subjectButtons = window.QUIZ_SUBJECTS.map(
     (item) => `
       <button class="button ${item.id === state.subject ? "" : "secondary"}" type="button" data-subject="${item.id}">
@@ -122,6 +127,19 @@ function renderModeSelector() {
       </button>
     `,
   ).join("");
+  const specialTestTiles = specialTests
+    .map(
+      (test) => `
+        <button class="quiz-tile" type="button" data-special-test="${escapeHtml(test.id)}">
+          <span>
+            <strong>${escapeHtml(test.title)}</strong>
+            ${escapeHtml(test.description)}
+          </span>
+          <span class="quiz-meta">${escapeHtml(test.meta)}</span>
+        </button>
+      `,
+    )
+    .join("");
 
   renderShell(`
     <section class="topbar">
@@ -149,6 +167,7 @@ function renderModeSelector() {
         </span>
         <span class="quiz-meta">10 вопросов</span>
       </button>
+      ${specialTestTiles}
     </section>
   `);
 }
@@ -314,18 +333,24 @@ function renderQuestion(question, index) {
 function renderQuiz() {
   const { attempt } = state;
   const title =
-    attempt.mode === "topic"
+    attempt.mode === "fixed-test"
+      ? attempt.title || "Отдельный тест"
+    : attempt.mode === "topic"
       ? `Тема: ${getTopicTitle(attempt.subject, attempt.university, attempt.topic)}`
       : attempt.mode === "mistakes"
         ? "Повтор ошибок"
         : `Экзамен ${getUniversityTitle(attempt.university)}`;
+  const meta =
+    attempt.mode === "fixed-test"
+      ? `${getSubjectConfig(attempt.subject)?.title || "Тест"} · ${attempt.actualCount} из ${attempt.requestedCount} вопросов`
+      : `${getUniversityTitle(attempt.university)} · ${attempt.actualCount} из ${attempt.requestedCount} вопросов`;
 
   renderShell(`
     <form data-testid="quiz-form">
       <section class="toolbar">
         <div class="toolbar-title">
           <h2>${escapeHtml(title)}</h2>
-          <p>${getUniversityTitle(attempt.university)} · ${attempt.actualCount} из ${attempt.requestedCount} вопросов</p>
+          <p>${escapeHtml(meta)}</p>
         </div>
         <div class="toolbar-status">
           ${attempt.timerSeconds ? `<span class="timer" data-testid="timer">${formatTime(attempt.timerSeconds)}</span>` : ""}
@@ -523,6 +548,15 @@ app.addEventListener("click", (event) => {
   const examUniversity = event.target.closest("[data-start-exam]")?.dataset.startExam;
   if (examUniversity) {
     startAttempt({ mode: "exam", subject: state.subject, university: examUniversity });
+    return;
+  }
+
+  const specialTestId = event.target.closest("[data-special-test]")?.dataset.specialTest;
+  if (specialTestId) {
+    const specialTest = (window.SPECIAL_TESTS || []).find((item) => item.id === specialTestId);
+    if (specialTest) {
+      startAttempt(specialTest.config);
+    }
     return;
   }
 

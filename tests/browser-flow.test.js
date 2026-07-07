@@ -79,6 +79,19 @@ test("user can select Russian and run a SUSU Russian exam", async () => {
   });
 });
 
+test("user can select Russian and run the standalone spelling test", async () => {
+  await withPage(async (page) => {
+    await page.waitForSelector('[data-testid="mode-selector"]');
+    await page.click('[data-subject="russian"]');
+    await page.click('[data-special-test="russian-spelling-forms"]');
+    await page.waitForSelector('[data-testid="quiz-form"]');
+
+    assert.equal(await page.locator(".question-card").count(), 60);
+    await assert.match(await page.locator(".toolbar h2").innerText(), /Слитное, раздельное и дефисное написание/);
+    await assert.match(await page.locator(".question-card").first().innerText(), /диван-кровать/);
+  });
+});
+
 test("user can select Programming and run a UrFU programming exam", async () => {
   await withPage(async (page) => {
     await page.waitForSelector('[data-testid="mode-selector"]');

@@ -112,6 +112,39 @@ test("creates programming exam attempts with subject-specific format", () => {
   assert.ok(susuAttempt.questions.every((question) => question.subject === "programming"));
 });
 
+test("creates a fixed Russian standalone test without shuffling", () => {
+  const fixedQuestions = Array.from({ length: 3 }, (_, index) => ({
+    ...makeQuestion(`joined-${index + 1}`, "practice", "spelling-forms", "russian"),
+    fixedTest: "russian-spelling-forms",
+  }));
+  const bank = [
+    ...fixedQuestions,
+    makeQuestion("other-russian", "urfu", "orthography", "russian"),
+    makeQuestion("other-it", "practice", "spelling-forms", "it"),
+  ];
+
+  const attempt = createAttempt(
+    {
+      mode: "fixed-test",
+      subject: "russian",
+      university: "practice",
+      fixedTest: "russian-spelling-forms",
+      title: "Слитное, раздельное и дефисное написание",
+    },
+    bank,
+    createEmptyHistory(),
+    () => 0.99,
+  );
+
+  assert.equal(attempt.mode, "fixed-test");
+  assert.equal(attempt.requestedCount, 3);
+  assert.equal(attempt.actualCount, 3);
+  assert.equal(attempt.title, "Слитное, раздельное и дефисное написание");
+  assert.deepEqual(attempt.questions.map((question) => question.id), ["joined-1", "joined-2", "joined-3"]);
+  assert.ok(attempt.questions.every((question) => question.fixedTest === "russian-spelling-forms"));
+  assert.equal(attempt.timerSeconds, null);
+});
+
 test("exam attempts sample questions across available topics", () => {
   const topics = ["systems", "services", "data", "security"];
   const bank = topics.flatMap((topic) =>

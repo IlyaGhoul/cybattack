@@ -75,7 +75,11 @@
     return copy;
   }
 
-  function getRequestedCount(config) {
+  function getRequestedCount(config, poolSize = DEFAULT_TOPIC_COUNT) {
+    if (config.mode === "fixed-test") {
+      return config.count || poolSize;
+    }
+
     if (config.mode === "exam") {
       const subject = config.subject || "it";
       return EXAM_COUNTS[subject]?.[config.university] || DEFAULT_TOPIC_COUNT;
@@ -90,6 +94,11 @@
 
   function filterPool(config, questionBank, history) {
     const subject = config.subject || "it";
+
+    if (config.mode === "fixed-test" && config.fixedTest) {
+      return questionBank.filter((question) => question.subject === subject && question.fixedTest === config.fixedTest);
+    }
+
     const byUniversity = questionBank.filter(
       (question) => (question.subject || "it") === subject && question.university === config.university,
     );
@@ -154,10 +163,12 @@
 
   function createAttempt(config, questionBank, rawHistory, rng = Math.random) {
     const history = normalizeHistory(rawHistory);
-    const requestedCount = getRequestedCount(config);
     const pool = filterPool(config, questionBank, history);
+    const requestedCount = getRequestedCount(config, pool.length);
     const questions =
-      config.mode === "mistakes"
+      config.mode === "fixed-test"
+        ? uniqueById(pool).slice(0, requestedCount)
+      : config.mode === "mistakes"
         ? shuffle(uniqueById(pool), rng).slice(0, requestedCount)
         : config.mode === "exam"
           ? selectExamQuestions(pool, requestedCount, history, rng)
@@ -168,6 +179,8 @@
       subject: config.subject || "it",
       university: config.university,
       topic: config.topic || null,
+      fixedTest: config.fixedTest || null,
+      title: config.title || null,
       questions,
       requestedCount,
       actualCount: questions.length,

@@ -237,7 +237,7 @@ test("incorrect options avoid low-signal distractors", () => {
   ];
 
   for (const question of QUESTION_BANK) {
-    if (question.type === "matching") {
+    if (question.type === "matching" || question.fixedTest) {
       continue;
     }
 
@@ -377,6 +377,26 @@ test("Russian orthoepy marks тОрты as the correct stress", () => {
     ].join(" ");
     assert.doesNotMatch(normalizedExplanations, /Правильно тортЫ|Нормативное ударение: тортЫ/);
   }
+});
+
+test("Russian standalone spelling test contains all imported questions", () => {
+  const { QUESTION_BANK, SPECIAL_TESTS } = loadQuizData();
+  const spellingTest = SPECIAL_TESTS.find((item) => item.id === "russian-spelling-forms");
+  const questions = QUESTION_BANK.filter((question) => question.fixedTest === "russian-spelling-forms");
+
+  assert.ok(spellingTest, "expected standalone Russian spelling test metadata");
+  assert.equal(spellingTest.subject, "russian");
+  assert.equal(spellingTest.config.count, 60);
+  assert.equal(questions.length, 60);
+  assert.ok(questions.every((question) => question.type === "single"));
+  assert.ok(questions.every((question) => question.subject === "russian"));
+  assert.ok(questions.every((question) => question.university === "practice"));
+  assert.ok(questions.every((question) => question.topic === "spelling-forms"));
+
+  const firstCorrect = questions[0].options.find((option) => option.letter === questions[0].correct);
+  const lastCorrect = questions[59].options.find((option) => option.letter === questions[59].correct);
+  assert.equal(firstCorrect.text, "диван-кровать");
+  assert.equal(lastCorrect.text, "Я не видел ни дома, ни машины.");
 });
 
 test("topic definitions cover both universities", () => {
