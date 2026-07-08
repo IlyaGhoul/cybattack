@@ -399,6 +399,29 @@ test("Russian standalone spelling test contains all imported questions", () => {
   assert.equal(lastCorrect.text, "Я не видел ни дома, ни машины.");
 });
 
+test("IT standalone computer literacy test contains all imported questions", () => {
+  const { QUESTION_BANK, SPECIAL_TESTS } = loadQuizData();
+  const itTest = SPECIAL_TESTS.find((item) => item.id === "it-computer-literacy");
+  const questions = QUESTION_BANK.filter((question) => question.fixedTest === "it-computer-literacy");
+  const types = new Set(questions.map((question) => question.type));
+
+  assert.ok(itTest, "expected standalone IT test metadata");
+  assert.equal(itTest.subject, "it");
+  assert.equal(itTest.config.count, 30);
+  assert.equal(questions.length, 30);
+  assert.ok(types.has("single"));
+  assert.ok(types.has("multiple"));
+  assert.ok(types.has("matching"));
+  assert.ok(questions.every((question) => (question.subject || "it") === "it"));
+  assert.ok(questions.every((question) => question.university === "practice"));
+  assert.ok(questions.every((question) => question.topic === "it-computer-literacy"));
+
+  const firstCorrect = questions[0].options.find((option) => option.letter === questions[0].correct);
+  const lastCorrect = questions[29].options.find((option) => option.letter === questions[29].correct);
+  assert.equal(firstCorrect.text, "графические элементы программ, а также технология их обработки");
+  assert.equal(lastCorrect.text, "Специальная область памяти компьютера, в которой временно хранится информация");
+});
+
 test("Programming standalone SUSU test contains all imported questions", () => {
   const { QUESTION_BANK, SPECIAL_TESTS } = loadQuizData();
   const programmingTest = SPECIAL_TESTS.find((item) => item.id === "susu-programming-full-coverage");

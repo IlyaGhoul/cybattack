@@ -65,6 +65,18 @@ test("home screen does not show progress controls", async () => {
   });
 });
 
+test("user can run the standalone IT computer literacy test", async () => {
+  await withPage(async (page) => {
+    await page.waitForSelector('[data-testid="mode-selector"]');
+    await page.click('[data-special-test="it-computer-literacy"]');
+    await page.waitForSelector('[data-testid="quiz-form"]');
+
+    assert.equal(await page.locator(".question-card").count(), 30);
+    await assert.match(await page.locator(".toolbar h2").innerText(), /ИТ: компьютерная грамотность/);
+    await assert.match(await page.locator(".question-card").first().innerText(), /компьютерная графика/);
+  });
+});
+
 test("user can select Russian and run a SUSU Russian exam", async () => {
   await withPage(async (page) => {
     await page.waitForSelector('[data-testid="mode-selector"]');
