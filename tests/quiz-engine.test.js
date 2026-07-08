@@ -408,7 +408,7 @@ test("Programming standalone SUSU test contains all imported questions", () => {
   assert.equal(programmingTest.subject, "programming");
   assert.equal(programmingTest.config.count, 96);
   assert.equal(questions.length, 96);
-  assert.ok(questions.every((question) => question.type === "single"));
+  assert.ok(questions.every((question) => ["single", "multiple"].includes(question.type)));
   assert.ok(questions.every((question) => question.subject === "programming"));
   assert.ok(questions.every((question) => question.university === "susu"));
   assert.ok(questions.every((question) => question.topic === "susu-programming-full-coverage"));
@@ -418,6 +418,58 @@ test("Programming standalone SUSU test contains all imported questions", () => {
   assert.equal(questions[0].text, "1. Что такое алгоритм?");
   assert.equal(firstCorrect.text, "Точное описание действий для решения задачи");
   assert.equal(lastCorrect.text, "Формально запись есть, но смысл неправильный");
+});
+
+test("Programming standalone SUSU test has balanced answer letters", () => {
+  const { QUESTION_BANK } = loadQuizData();
+  const questions = QUESTION_BANK.filter(
+    (question) => question.fixedTest === "susu-programming-full-coverage" && question.type === "single",
+  );
+  const counts = new Map(["А", "Б", "В", "Г"].map((letter) => [letter, 0]));
+
+  for (const question of questions) {
+    counts.set(question.correct, counts.get(question.correct) + 1);
+  }
+
+  const values = [...counts.values()];
+  assert.ok(values.every((count) => count >= 12), [...counts.entries()].map(([letter, count]) => `${letter}:${count}`).join(", "));
+  assert.ok(Math.max(...values) - Math.min(...values) <= 6, [...counts.entries()].map(([letter, count]) => `${letter}:${count}`).join(", "));
+});
+
+test("Programming standalone SUSU test includes multi-answer tasks", () => {
+  const { QUESTION_BANK } = loadQuizData();
+  const questions = QUESTION_BANK.filter((question) => question.fixedTest === "susu-programming-full-coverage");
+  const multiQuestions = questions.filter((question) => question.type === "multiple");
+
+  assert.ok(multiQuestions.length >= 12, `expected at least 12 multi-answer tasks, got ${multiQuestions.length}`);
+  assert.ok(multiQuestions.every((question) => question.hint.includes("Выберите несколько ответов")));
+  assert.ok(multiQuestions.every((question) => question.correct.length >= 2));
+});
+
+test("Programming standalone SUSU test uses stronger distractors", () => {
+  const { QUESTION_BANK } = loadQuizData();
+  const questions = QUESTION_BANK.filter((question) => question.fixedTest === "susu-programming-full-coverage");
+  const weakPatterns = [
+    /только монитор/i,
+    /только клавиатуру/i,
+    /только красив/i,
+    /не имеет алгоритма/i,
+    /только цвет/i,
+    /только шрифт/i,
+    /только один символ/i,
+    /только ошибка/i,
+    /только файл/i,
+  ];
+
+  for (const question of questions) {
+    for (const option of question.options) {
+      assert.equal(
+        weakPatterns.some((pattern) => pattern.test(option.text)),
+        false,
+        `${question.id} has a weak distractor: ${option.text}`,
+      );
+    }
+  }
 });
 
 test("topic definitions cover both universities", () => {
