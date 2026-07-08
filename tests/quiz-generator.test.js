@@ -145,6 +145,26 @@ test("creates a fixed Russian standalone test without shuffling", () => {
   assert.equal(attempt.timerSeconds, null);
 });
 
+test("exam attempts ignore standalone fixed-test questions", () => {
+  const bank = [
+    ...Array.from({ length: 20 }, (_, index) => makeQuestion(`prog-s-${index}`, "susu", "oop", "programming")),
+    ...Array.from({ length: 10 }, (_, index) => ({
+      ...makeQuestion(`fixed-prog-${index}`, "susu", "susu-programming-full-coverage", "programming"),
+      fixedTest: "susu-programming-full-coverage",
+    })),
+  ];
+
+  const attempt = createAttempt(
+    { mode: "exam", subject: "programming", university: "susu" },
+    bank,
+    createEmptyHistory(),
+    fixedRng,
+  );
+
+  assert.equal(attempt.questions.length, 15);
+  assert.ok(attempt.questions.every((question) => !question.fixedTest));
+});
+
 test("exam attempts sample questions across available topics", () => {
   const topics = ["systems", "services", "data", "security"];
   const bank = topics.flatMap((topic) =>

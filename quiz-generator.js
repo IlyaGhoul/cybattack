@@ -108,11 +108,13 @@
       return byUniversity.filter((question) => mistakeIds.has(question.id));
     }
 
+    const regularPool = byUniversity.filter((question) => !question.fixedTest);
+
     if (config.mode === "topic" && config.topic) {
-      return byUniversity.filter((question) => question.topic === config.topic);
+      return regularPool.filter((question) => question.topic === config.topic);
     }
 
-    return byUniversity;
+    return regularPool;
   }
 
   function selectQuestions(pool, requestedCount, history, rng) {

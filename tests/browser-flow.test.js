@@ -106,6 +106,19 @@ test("user can select Programming and run a UrFU programming exam", async () => 
   });
 });
 
+test("user can select Programming and run the standalone SUSU programming test", async () => {
+  await withPage(async (page) => {
+    await page.waitForSelector('[data-testid="mode-selector"]');
+    await page.click('[data-subject="programming"]');
+    await page.click('[data-special-test="susu-programming-full-coverage"]');
+    await page.waitForSelector('[data-testid="quiz-form"]');
+
+    assert.equal(await page.locator(".question-card").count(), 96);
+    await assert.match(await page.locator(".toolbar h2").innerText(), /ЮУрГУ: Основы программирования/);
+    await assert.match(await page.locator(".question-card").first().innerText(), /Что такое алгоритм/);
+  });
+});
+
 test("user can run a generated SUSU exam with timer and result actions", async () => {
   await withPage(async (page) => {
     await page.waitForSelector('[data-testid="mode-selector"]');

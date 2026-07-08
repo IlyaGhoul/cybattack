@@ -257,7 +257,7 @@ test("incorrect options avoid low-signal distractors", () => {
 test("programming single-choice distractors come from the same topic answer pool", () => {
   const { QUESTION_BANK } = loadQuizData();
   const programmingSingles = QUESTION_BANK.filter(
-    (question) => question.subject === "programming" && question.type === "single" && !question.examFocus,
+    (question) => question.subject === "programming" && question.type === "single" && !question.examFocus && !question.fixedTest,
   );
   const answerPools = new Map();
 
@@ -397,6 +397,27 @@ test("Russian standalone spelling test contains all imported questions", () => {
   const lastCorrect = questions[59].options.find((option) => option.letter === questions[59].correct);
   assert.equal(firstCorrect.text, "диван-кровать");
   assert.equal(lastCorrect.text, "Я не видел ни дома, ни машины.");
+});
+
+test("Programming standalone SUSU test contains all imported questions", () => {
+  const { QUESTION_BANK, SPECIAL_TESTS } = loadQuizData();
+  const programmingTest = SPECIAL_TESTS.find((item) => item.id === "susu-programming-full-coverage");
+  const questions = QUESTION_BANK.filter((question) => question.fixedTest === "susu-programming-full-coverage");
+
+  assert.ok(programmingTest, "expected standalone programming test metadata");
+  assert.equal(programmingTest.subject, "programming");
+  assert.equal(programmingTest.config.count, 96);
+  assert.equal(questions.length, 96);
+  assert.ok(questions.every((question) => question.type === "single"));
+  assert.ok(questions.every((question) => question.subject === "programming"));
+  assert.ok(questions.every((question) => question.university === "susu"));
+  assert.ok(questions.every((question) => question.topic === "susu-programming-full-coverage"));
+
+  const firstCorrect = questions[0].options.find((option) => option.letter === questions[0].correct);
+  const lastCorrect = questions[95].options.find((option) => option.letter === questions[95].correct);
+  assert.equal(questions[0].text, "1. Что такое алгоритм?");
+  assert.equal(firstCorrect.text, "Точное описание действий для решения задачи");
+  assert.equal(lastCorrect.text, "Формально запись есть, но смысл неправильный");
 });
 
 test("topic definitions cover both universities", () => {
