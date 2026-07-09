@@ -116,6 +116,19 @@ test("user can select Russian and run the standalone spelling test", async () =>
   });
 });
 
+test("user can run the standalone SUSU Russian review attempt test", async () => {
+  await withPage(async (page) => {
+    await page.waitForSelector('[data-testid="mode-selector"]');
+    await page.click('[data-subject="russian"]');
+    await page.click('[data-special-test="susu-russian-review-attempt"]');
+    await page.waitForSelector('[data-testid="quiz-form"]');
+
+    assert.equal(await page.locator(".question-card").count(), 20);
+    await assert.match(await page.locator(".toolbar h2").innerText(), /ЮУрГУ: Русский язык/);
+    await assert.match(await page.locator(".question-card").first().innerText(), /ГЛАВНАЯ информация/);
+  });
+});
+
 test("user can select Programming and run a UrFU programming exam", async () => {
   await withPage(async (page) => {
     await page.waitForSelector('[data-testid="mode-selector"]');

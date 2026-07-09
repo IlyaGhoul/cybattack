@@ -399,6 +399,39 @@ test("Russian standalone spelling test contains all imported questions", () => {
   assert.equal(lastCorrect.text, "Я не видел ни дома, ни машины.");
 });
 
+test("SUSU Russian review attempt standalone test matches the imported HTML attempt", () => {
+  const { QUESTION_BANK, SPECIAL_TESTS } = loadQuizData();
+  const reviewTest = SPECIAL_TESTS.find((item) => item.id === "susu-russian-review-attempt");
+  const questions = QUESTION_BANK.filter((question) => question.fixedTest === "susu-russian-review-attempt");
+  const types = new Set(questions.map((question) => question.type));
+
+  assert.ok(reviewTest, "expected standalone SUSU Russian review attempt metadata");
+  assert.equal(reviewTest.subject, "russian");
+  assert.equal(reviewTest.config.count, 20);
+  assert.equal(questions.length, 20);
+  assert.ok(types.has("single"));
+  assert.ok(types.has("multiple"));
+  assert.ok(questions.every((question) => question.subject === "russian"));
+  assert.ok(questions.every((question) => question.university === "susu"));
+  assert.ok(questions.every((question) => question.topic === "susu-russian-review-attempt"));
+
+  const firstCorrectTexts = questions[0].options
+    .filter((option) => questions[0].correct.includes(option.letter))
+    .map((option) => option.text);
+  assert.equal(questions[0].text.includes("Укажите варианты ответов, в которых верно передана ГЛАВНАЯ информация"), true);
+  assert.equal(
+    JSON.stringify(firstCorrectTexts),
+    JSON.stringify([
+      "После нашествия крыс в голодном 1942 году коты ценой больших потерь спасли жителей города.",
+      "Коты спасли Ленинград от нашествия крыс, которое произошло во время блокады города.",
+    ]),
+  );
+  assert.equal(questions[5].options.find((option) => option.letter === questions[5].correct).text, "пришла");
+  assert.equal(questions[18].type, "multiple");
+  assert.equal(questions[18].correct.length, 3);
+  assert.equal(questions[19].options.find((option) => option.letter === questions[19].correct).text, "публицистический");
+});
+
 test("IT standalone computer literacy test contains all imported questions", () => {
   const { QUESTION_BANK, SPECIAL_TESTS } = loadQuizData();
   const itTest = SPECIAL_TESTS.find((item) => item.id === "it-computer-literacy");
