@@ -77,6 +77,18 @@ test("user can run the standalone IT computer literacy test", async () => {
   });
 });
 
+test("user can run the standalone SUSU IT review attempt test", async () => {
+  await withPage(async (page) => {
+    await page.waitForSelector('[data-testid="mode-selector"]');
+    await page.click('[data-special-test="susu-it-review-attempt"]');
+    await page.waitForSelector('[data-testid="quiz-form"]');
+
+    assert.equal(await page.locator(".question-card").count(), 10);
+    await assert.match(await page.locator(".toolbar h2").innerText(), /ЮУрГУ: Информационные технологии/);
+    await assert.match(await page.locator(".question-card").first().innerText(), /Корпоративные информационные системы/);
+  });
+});
+
 test("user can select Russian and run a SUSU Russian exam", async () => {
   await withPage(async (page) => {
     await page.waitForSelector('[data-testid="mode-selector"]');

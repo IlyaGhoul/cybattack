@@ -422,6 +422,30 @@ test("IT standalone computer literacy test contains all imported questions", () 
   assert.equal(lastCorrect.text, "Специальная область памяти компьютера, в которой временно хранится информация");
 });
 
+test("SUSU IT review attempt standalone test matches the imported HTML attempt", () => {
+  const { QUESTION_BANK, SPECIAL_TESTS } = loadQuizData();
+  const reviewTest = SPECIAL_TESTS.find((item) => item.id === "susu-it-review-attempt");
+  const questions = QUESTION_BANK.filter((question) => question.fixedTest === "susu-it-review-attempt");
+
+  assert.ok(reviewTest, "expected standalone SUSU IT review attempt metadata");
+  assert.equal(reviewTest.subject, "it");
+  assert.equal(reviewTest.config.count, 10);
+  assert.equal(questions.length, 10);
+  assert.ok(questions.every((question) => question.type === "single"));
+  assert.ok(questions.every((question) => question.subject === "it"));
+  assert.ok(questions.every((question) => question.university === "susu"));
+  assert.ok(questions.every((question) => question.topic === "susu-it-review-attempt"));
+
+  assert.equal(questions[0].text, "Корпоративные информационные системы — это системы, обеспечивающие…");
+  assert.equal(questions[0].options.find((option) => option.letter === questions[0].correct).text, "полную автоматизацию крупных хозяйственных субъектов");
+  assert.equal(questions[2].options.find((option) => option.letter === questions[2].correct).text, "законченное с точки зрения пользователя действие над базой данных");
+  assert.equal(questions[9].text, "Защита системы от пользователя предполагает:");
+  assert.equal(
+    questions[9].options.find((option) => option.letter === questions[9].correct).text,
+    "исключение возможности неквалифицированных действий, доступа к общесистемным данным и данным других пользователей",
+  );
+});
+
 test("Programming standalone SUSU test contains all imported questions", () => {
   const { QUESTION_BANK, SPECIAL_TESTS } = loadQuizData();
   const programmingTest = SPECIAL_TESTS.find((item) => item.id === "susu-programming-full-coverage");
