@@ -161,6 +161,21 @@
       },
     },
     {
+      id: "susu-algorithms-review-attempt",
+      subject: "programming",
+      title: "ЮУрГУ: Алгоритмы",
+      description: "Отдельный тест один в один из HTML просмотра попытки: свойства алгоритма, Pascal, ввод-вывод, вычисление фрагментов кода, ООП и модули.",
+      meta: "10 вопросов",
+      config: {
+        mode: "fixed-test",
+        subject: "programming",
+        university: "susu",
+        fixedTest: "susu-algorithms-review-attempt",
+        count: 10,
+        title: "ЮУрГУ: Алгоритмы",
+      },
+    },
+    {
       id: "susu-programming-full-coverage",
       subject: "programming",
       title: "ЮУрГУ: Основы программирования",
@@ -1753,6 +1768,93 @@
       options: optionTexts.map((text, optionIndex) => ({ letter: LETTERS[optionIndex], text })),
       correct,
       explanation: `${preparedRow.section}. Правильный ответ: ${correctTexts.join("; ")}.`,
+    };
+  }
+
+  const SUSU_ALGORITHMS_REVIEW_ATTEMPT_ROWS = [
+    {
+      text: "Графическое задание алгоритма – это…",
+      options: [
+        "система обозначений и правил для единообразной и точной записи алгоритмов и их исполнения",
+        "способ представления алгоритма с помощью геометрических фигур",
+        "представление алгоритма в форме расчётных формул и таблиц",
+      ],
+      correctIndex: 1,
+    },
+    {
+      text: "Свойства алгоритма:",
+      options: [
+        "многозначительность, массовость, определённость, результативность, понятность",
+        "дискретность, понятность, определённость, массовость, результативность",
+        "архивность, понятность, результативность, определённость, массовость",
+        "понятность, безошибочность, массовость, определённость, дискретность",
+        "понятность, дискретность, определённость, абстрактность, результативность",
+      ],
+      correctIndex: 1,
+    },
+    {
+      text: "Описание переменных происходит в разделе (Pascal)…",
+      options: ["vag", "const", "var"],
+      correctIndex: 2,
+    },
+    {
+      text: "Оператор для печати сообщений пользователю на экране и считывания его ответов с клавиатуры в языках программирования – это…",
+      options: ["оператор цикла", "условный оператор", "оператор ввода/вывода"],
+      correctIndex: 2,
+    },
+    {
+      text: "Найти результат.\nЯзык Си:\nint a = 20, b = 5; a *= b;\nАлгоритмический язык:\nнач цел a, b\na := 20\nb := 5\na := a * b\nкон\na = ?",
+      options: ["15", "100", "25", "0"],
+      correctIndex: 1,
+    },
+    {
+      text: "Найти результат.\nЯзык Си:\nint a = 1, b = 5, c;\nif ( a > 0 && b < 0 )\n{\nc = a + 1;\n}\nelse\nif ( a > 0 || b < 0 )\n{\nc = a - 1;\n}\nelse c = b - a;\nАлгоритмический язык:\nнач цел a, b, c\na := 1\nb := 5\nесли (a > 0) и (b < 0)\nто c := a + 1\nиначе если (a > 0) или (b < 0)\nто c := a - 1\nиначе c := b - a\nвсе\nвсе\nкон\nc = ?",
+      options: ["8", "2", "4", "0"],
+      correctIndex: 3,
+    },
+    {
+      text: "В чем заключается смысл принципа наследования?",
+      options: [
+        "Все варианты ответов верны",
+        "Один объект может наследовать свойства другого объекта, но не может добавлять к ним черты, характерные только для него",
+        "Объект, принадлежащий классу-родителю, может использовать поля, свойства и методы класса-потомка",
+        "Не надо каждый раз заново (с нуля) описывать новый класс, а можно указать родителя (базовый класс) и описать отличительные особенности нового класса",
+      ],
+      correctIndex: 3,
+    },
+    {
+      text: "Один из принципов объектно-ориентированного программирования:",
+      options: ["монорфизм", "полиморфизм", "абстракционизм"],
+      correctIndex: 1,
+    },
+    {
+      text: "Сочетать модульное программирование с ООП…",
+      options: ["можно, но только в особых случаях", "нельзя", "можно"],
+      correctIndex: 2,
+    },
+    {
+      text: "Может ли модуль включать несколько процедур или функций?",
+      options: ["Иногда может", "Нет", "Да, без ограничений"],
+      correctIndex: 2,
+    },
+  ];
+
+  function susuAlgorithmsReviewAttemptQuestion(row, index) {
+    const options = row.options.map((text, optionIndex) => ({ letter: LETTERS[optionIndex], text }));
+    const correctOption = options[row.correctIndex];
+
+    return {
+      id: `susu-algorithms-review-attempt-${String(index + 1).padStart(2, "0")}`,
+      subject: "programming",
+      university: "susu",
+      topic: "susu-algorithms-review-attempt",
+      fixedTest: "susu-algorithms-review-attempt",
+      type: "single",
+      text: row.text,
+      hint: "ЮУрГУ: Алгоритмы",
+      options,
+      correct: correctOption.letter,
+      explanation: `Правильный ответ: ${correctOption.text}.`,
     };
   }
 
@@ -3986,6 +4088,7 @@
     ...russianQuestions("urfu"),
     ...russianQuestions("susu"),
     ...programmingExamQuestions,
+    ...SUSU_ALGORITHMS_REVIEW_ATTEMPT_ROWS.map((row, index) => susuAlgorithmsReviewAttemptQuestion(row, index)),
     ...SUSU_PROGRAMMING_FULL_COVERAGE_ROWS.map((row, index) => susuProgrammingFullCoverageQuestion(row, index)),
     ...programmingQuestions("urfu"),
     ...programmingQuestions("susu"),

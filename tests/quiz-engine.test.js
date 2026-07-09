@@ -479,6 +479,27 @@ test("SUSU IT review attempt standalone test matches the imported HTML attempt",
   );
 });
 
+test("SUSU algorithms review attempt standalone test matches the imported HTML attempt", () => {
+  const { QUESTION_BANK, SPECIAL_TESTS } = loadQuizData();
+  const reviewTest = SPECIAL_TESTS.find((item) => item.id === "susu-algorithms-review-attempt");
+  const questions = QUESTION_BANK.filter((question) => question.fixedTest === "susu-algorithms-review-attempt");
+
+  assert.ok(reviewTest, "expected standalone SUSU algorithms review attempt metadata");
+  assert.equal(reviewTest.subject, "programming");
+  assert.equal(reviewTest.config.count, 10);
+  assert.equal(questions.length, 10);
+  assert.ok(questions.every((question) => question.type === "single"));
+  assert.ok(questions.every((question) => question.subject === "programming"));
+  assert.ok(questions.every((question) => question.university === "susu"));
+  assert.ok(questions.every((question) => question.topic === "susu-algorithms-review-attempt"));
+
+  assert.equal(questions[0].text, "Графическое задание алгоритма – это…");
+  assert.equal(questions[0].options.find((option) => option.letter === questions[0].correct).text, "способ представления алгоритма с помощью геометрических фигур");
+  assert.equal(questions[4].options.find((option) => option.letter === questions[4].correct).text, "100");
+  assert.equal(questions[5].options.find((option) => option.letter === questions[5].correct).text, "0");
+  assert.equal(questions[9].options.find((option) => option.letter === questions[9].correct).text, "Да, без ограничений");
+});
+
 test("Programming standalone SUSU test contains all imported questions", () => {
   const { QUESTION_BANK, SPECIAL_TESTS } = loadQuizData();
   const programmingTest = SPECIAL_TESTS.find((item) => item.id === "susu-programming-full-coverage");
