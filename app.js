@@ -119,7 +119,7 @@ function renderModeSelector() {
   state.attempt = null;
   state.answers = {};
   const subject = getSubjectConfig();
-  const specialTests = (window.SPECIAL_TESTS || []).filter((item) => item.subject === state.subject);
+  const specialTests = (window.SPECIAL_TESTS || []).filter((item) => item.subject === state.subject || item.subject === "all");
   const subjectButtons = window.QUIZ_SUBJECTS.map(
     (item) => `
       <button class="button ${item.id === state.subject ? "" : "secondary"}" type="button" data-subject="${item.id}">

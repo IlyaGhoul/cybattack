@@ -500,6 +500,39 @@ test("SUSU algorithms review attempt standalone test matches the imported HTML a
   assert.equal(questions[9].options.find((option) => option.letter === questions[9].correct).text, "Да, без ограничений");
 });
 
+test("SUSU general 90 plus standalone test combines all subjects with balanced answer letters", () => {
+  const { QUESTION_BANK, SPECIAL_TESTS } = loadQuizData();
+  const generalTest = SPECIAL_TESTS.find((item) => item.id === "susu-general-90-plus");
+  const questions = QUESTION_BANK.filter((question) => question.fixedTest === "susu-general-90-plus");
+  const correctLetters = questions.map((question) => question.correct);
+  const counts = new Map(["А", "Б", "В", "Г"].map((letter) => [letter, correctLetters.filter((item) => item === letter).length]));
+
+  assert.ok(generalTest, "expected standalone SUSU general test metadata");
+  assert.equal(generalTest.subject, "all");
+  assert.equal(generalTest.config.count, 80);
+  assert.equal(questions.length, 80);
+  assert.ok(questions.every((question) => question.type === "single"));
+  assert.ok(questions.every((question) => question.subject === "all"));
+  assert.ok(questions.every((question) => question.university === "susu"));
+  assert.ok(questions.every((question) => question.topic === "susu-general-90-plus"));
+  assert.ok(questions.every((question) => question.options.length === 4));
+  assert.deepEqual([...counts.values()], [20, 20, 20, 20]);
+
+  for (let index = 1; index < correctLetters.length; index += 1) {
+    assert.notEqual(correctLetters[index], correctLetters[index - 1], `repeated answer letter at questions ${index} and ${index + 1}`);
+  }
+
+  assert.equal(questions[0].text, "В каком слове пишется А?");
+  assert.equal(questions[0].options.find((option) => option.letter === questions[0].correct).text, "выр_щенный");
+  assert.equal(questions[20].text, "Что такое информационная технология?");
+  assert.equal(
+    questions[20].options.find((option) => option.letter === questions[20].correct).text,
+    "Технология работы с информацией с помощью методов, программ и технических средств",
+  );
+  assert.equal(questions[45].text, "Что такое алгоритм?");
+  assert.equal(questions[79].options.find((option) => option.letter === questions[79].correct).text, "Пропускает остаток тела цикла и переходит к следующей итерации");
+});
+
 test("Programming standalone SUSU test contains all imported questions", () => {
   const { QUESTION_BANK, SPECIAL_TESTS } = loadQuizData();
   const programmingTest = SPECIAL_TESTS.find((item) => item.id === "susu-programming-full-coverage");

@@ -65,6 +65,18 @@ test("home screen does not show progress controls", async () => {
   });
 });
 
+test("user can run the standalone SUSU general 90 plus test", async () => {
+  await withPage(async (page) => {
+    await page.waitForSelector('[data-testid="mode-selector"]');
+    await page.click('[data-special-test="susu-general-90-plus"]');
+    await page.waitForSelector('[data-testid="quiz-form"]');
+
+    assert.equal(await page.locator(".question-card").count(), 80);
+    await assert.match(await page.locator(".toolbar h2").innerText(), /ЮУрГУ: общий тест 90\+/);
+    await assert.match(await page.locator(".question-card").first().innerText(), /В каком слове пишется А/);
+  });
+});
+
 test("user can run the standalone IT computer literacy test", async () => {
   await withPage(async (page) => {
     await page.waitForSelector('[data-testid="mode-selector"]');
